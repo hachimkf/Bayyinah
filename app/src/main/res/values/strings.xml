@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bayyinah</string>
+
+    <string name="frame_hint_ar">ضع الآية داخل الإطار</string>
+    <string name="frame_hint_fr">Cadrez le verset ici</string>
+    <string name="scan_ar">إقرأ واسمع</string>
+    <string name="scan_fr">ÉCOUTER</string>
+    <string name="scanning_ar">جارٍ القراءة…</string>
+    <string name="scanning_fr">Lecture du verset…</string>
+    <string name="no_match_ar">لم نتعرّف على الآية، حاول مجددًا</string>
+    <string name="no_match_fr">Verset non reconnu, réessayez</string>
+    <string name="loading_ar">جارٍ التحضير…</string>
+    <string name="loading_fr">Préparation…</string>
+
+    <string name="prev_ar">السابق</string>
+    <string name="prev_fr">Précédent</string>
+    <string name="next_ar">التالي</string>
+    <string name="next_fr">Suivant</string>
+    <string name="repeat_ar">تكرار مستمر</string>
+    <string name="repeat_fr">RÉPÉTER</string>
+    <string name="slow_label">بطيء • LENT (0.75x)</string>
+    <string name="normal_label">عادي • NORMAL</string>
+    <string name="audio_missing_ar">التلاوة غير متوفرة لهذه الآية</string>
+    <string name="audio_missing_fr">Audio indisponible pour ce verset</string>
+
+    <string name="perm_title_ar">نحتاج إلى الكاميرا</string>
+    <string name="perm_body_fr">Bayyinah utilise la caméra pour lire le verset dans votre livre. Tout reste sur le téléphone.</string>
+    <string name="perm_button">السماح • Autoriser</string>
+
+    <string name="cd_play">Lecture</string>
+    <string name="cd_pause">Pause</string>
+    <string name="cd_repeat">Répéter</string>
+    <string name="cd_prev">Verset précédent</string>
+    <string name="cd_next">Verset suivant</string>
+    <string name="cd_close">Retour à la caméra</string>
+    <string name="cd_scan">Lire le verset</string>
+    <string name="cd_torch">Lampe</string>
+    <string name="cd_back">Retour</string>
+
+    <string name="index_ar">الفهرس</string>
+    <string name="index_fr">Sommaire</string>
+    <string name="search_ar">بحث</string>
+    <string name="search_fr">Recherche</string>
+    <string name="index_title_fr">Les 114 sourates · Warsh</string>
+    <string name="search_hint">ابحث: كلمة، سورة، 18:10 · Rechercher</string>
+    <string name="surahs_section">السور · Sourates</string>
+    <string name="verses_section">الآيات · Versets</string>
+    <string name="no_results">لا نتائج · Aucun résultat</string>
+    <string name="makki">مكية</string>
+    <string name="madani">مدنية</string>
+    <string name="update_available_ar">تحديث جديد متوفر</string>
+    <string name="update_available_fr">Nouvelle version %1$s disponible</string>
+    <string name="update_button">تحديث · Mettre à jour</string>
+    <string name="update_downloading">جارٍ التحميل · Téléchargement %1$d %%</string>
+    <string name="update_ready_ar">التحديث جاهز</string>
+    <string name="update_ready_fr">Prêt à installer</string>
+    <string name="update_install">تثبيت · Installer</string>
+    <string name="update_failed">فشل التحميل · Échec, réessayer</string>
+    <string name="update_checking">جارٍ البحث · Recherche de mise à jour…</string>
+    <string name="update_uptodate">التطبيق محدّث · Bayyinah est à jour ✓</string>
+    <string name="ayat_ar">%1$s آية</string>
+    <string name="ayat_fr">%1$d versets</string>
+</resources>

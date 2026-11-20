@@ -1,0 +1,13 @@
+.gradle/
+build/
+app/build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+.DS_Store
+
+# Release signing — NEVER commit. Back these up: losing them means installed apps can no longer be updated.
+keystore/
+keystore.properties
+*.jks
