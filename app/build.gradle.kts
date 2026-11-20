@@ -29,7 +29,8 @@ android {
         minSdk = 24            // budget / older phones
         targetSdk = 36
         versionCode = appVersionCode
-        versionName = appVersionName
+        // -PtestVersionName=1.0.0 builds an "old" copy to test the in-app update flow.
+        versionName = (project.findProperty("testVersionName") as String?) ?: appVersionName
         buildConfigField("String", "UPDATE_REPO", "\"$updateRepo\"")
     }
 

@@ -3,6 +3,7 @@ package com.bayyinah.app.ui
 import android.app.Activity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,41 +48,50 @@ fun UpdateBanner(state: UpdateUi, vm: MainViewModel, modifier: Modifier = Modifi
     val activity = LocalContext.current as? Activity
     Surface(color = EmeraldDeep, contentColor = Cream, shape = RoundedCornerShape(28.dp), modifier = modifier.fillMaxWidth()) {
         AnimatedContent(targetState = state, contentKey = { it::class }, label = "update") { s ->
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp)) {
-                Box(Modifier.size(40.dp).clip(MaterialShapes.Sunny.toShape()).background(Amber), contentAlignment = Alignment.Center) {
-                    if (s is UpdateUi.Checking) LoadingIndicator(color = EmeraldDeep, modifier = Modifier.size(32.dp))
-                    else Text("↑", color = EmeraldDeep, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    when (s) {
-                        UpdateUi.Checking -> Text(stringResource(R.string.update_checking), fontWeight = FontWeight.Bold)
-                        UpdateUi.UpToDate -> Text(stringResource(R.string.update_uptodate), fontWeight = FontWeight.Bold)
-                        is UpdateUi.Available -> {
-                            Text(stringResource(R.string.update_available_ar), fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                            Text(stringResource(R.string.update_available_fr, s.info.version), fontSize = 13.sp, color = Cream.copy(alpha = 0.8f))
+            Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(40.dp).clip(MaterialShapes.Sunny.toShape()).background(Amber), contentAlignment = Alignment.Center) {
+                        if (s is UpdateUi.Checking) LoadingIndicator(color = EmeraldDeep, modifier = Modifier.size(32.dp))
+                        else Text("↑", color = EmeraldDeep, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        when (s) {
+                            UpdateUi.Checking -> Text(stringResource(R.string.update_checking), fontWeight = FontWeight.Bold)
+                            UpdateUi.UpToDate -> Text(stringResource(R.string.update_uptodate), fontWeight = FontWeight.Bold)
+                            is UpdateUi.Available -> {
+                                Text(stringResource(R.string.update_available_ar), fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                                Text(stringResource(R.string.update_available_fr, s.info.version), fontSize = 13.sp, color = Cream.copy(alpha = 0.8f))
+                            }
+                            is UpdateUi.Downloading -> {
+                                Text(stringResource(R.string.update_downloading, (s.progress * 100).toInt()), fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(6.dp))
+                                LinearWavyProgressIndicator(progress = { s.progress }, color = Amber, trackColor = Cream.copy(alpha = 0.2f), modifier = Modifier.fillMaxWidth().height(10.dp))
+                            }
+                            is UpdateUi.Ready -> {
+                                Text(stringResource(R.string.update_ready_ar), fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                                Text(stringResource(R.string.update_ready_fr) + " · ${s.info.version}", fontSize = 13.sp, color = Cream.copy(alpha = 0.8f))
+                            }
+                            is UpdateUi.Failed -> Text(stringResource(R.string.update_failed), fontWeight = FontWeight.Bold)
+                            UpdateUi.Hidden -> {}
                         }
-                        is UpdateUi.Downloading -> {
-                            Text(stringResource(R.string.update_downloading, (s.progress * 100).toInt()), fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(6.dp))
-                            LinearWavyProgressIndicator(progress = { s.progress }, color = Amber, trackColor = Cream.copy(alpha = 0.2f), modifier = Modifier.fillMaxWidth().height(10.dp))
+                    }
+                    if (s !is UpdateUi.Checking) {
+                        IconButton(onClick = { vm.dismissUpdate() }, modifier = Modifier.size(48.dp)) {
+                            Icon(AppIcons.Close, stringResource(R.string.cd_close), tint = Cream.copy(alpha = 0.7f), modifier = Modifier.size(22.dp))
                         }
-                        is UpdateUi.Ready -> {
-                            Text(stringResource(R.string.update_ready_ar), fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                            Text(stringResource(R.string.update_ready_fr) + " · ${s.info.version}", fontSize = 13.sp, color = Cream.copy(alpha = 0.8f))
-                        }
-                        is UpdateUi.Failed -> Text(stringResource(R.string.update_failed), fontWeight = FontWeight.Bold)
-                        UpdateUi.Hidden -> {}
                     }
                 }
-                when (s) {
-                    is UpdateUi.Available, is UpdateUi.Failed -> ActionButton(stringResource(R.string.update_button)) { vm.downloadUpdate() }
-                    is UpdateUi.Ready -> ActionButton(stringResource(R.string.update_install)) { activity?.let(vm::installUpdate) }
-                    else -> {}
+                // Action on its own row so the bilingual text never gets squeezed.
+                val action: Pair<String, () -> Unit>? = when (s) {
+                    is UpdateUi.Available, is UpdateUi.Failed -> stringResource(R.string.update_button) to { vm.downloadUpdate() }
+                    is UpdateUi.Ready -> stringResource(R.string.update_install) to { activity?.let(vm::installUpdate); Unit }
+                    else -> null
                 }
-                if (s !is UpdateUi.Checking) {
-                    IconButton(onClick = { vm.dismissUpdate() }, modifier = Modifier.size(48.dp)) {
-                        Icon(AppIcons.Close, stringResource(R.string.cd_close), tint = Cream.copy(alpha = 0.7f), modifier = Modifier.size(22.dp))
+                if (action != null) {
+                    Spacer(Modifier.height(10.dp))
+                    Row(Modifier.fillMaxWidth().padding(end = 8.dp), horizontalArrangement = Arrangement.End) {
+                        ActionButton(action.first, action.second)
                     }
                 }
             }
