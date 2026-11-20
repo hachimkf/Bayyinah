@@ -56,6 +56,7 @@ class UpdateManager(context: Context) {
         val abi = Build.SUPPORTED_ABIS.firstOrNull { it == "arm64-v8a" || it == "armeabi-v7a" }
         val asset = apks.firstOrNull { abi != null && it.optString("name").contains(abi) }
             ?: apks.firstOrNull { it.optString("name").contains("universal") }
+            ?: apks.firstOrNull()
             ?: return@withContext null
         UpdateInfo(
             version = version,

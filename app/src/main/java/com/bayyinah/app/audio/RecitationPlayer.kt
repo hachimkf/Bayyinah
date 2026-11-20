@@ -13,10 +13,14 @@ import java.io.File
 /**
  * Thin wrapper over Media3 ExoPlayer for single-verse recitation files.
  *
- * Lookup order for `audio_file` (e.g. `020114.opus`):
- *  1. `filesDir/audio/<file>`  – side-loaded audio packs (keeps the APK small)
- *  2. `assets/audio/<file>`    – audio bundled in the APK
- * Missing files are reported via [isAvailable] so the UI can show a placeholder state.
+ * A verse's file is `SSSAAA.<ext>` (surah, ayah in Warsh numbering, e.g. `018010.opus`).
+ * The extension in the DB is ignored: the first existing of [EXTENSIONS] wins, looked up in
+ *  1. `filesDir/audio/`               – app-private storage (future in-app downloads),
+ *  2. `Android/data/<pkg>/files/audio/` – copy files here over USB/adb, works on release builds,
+ *  3. `assets/audio/`                   – audio bundled in the APK.
+ * Opus (Ogg) is preferred: it is the smallest format that still sounds clear for recitation, and
+ * ExoPlayer plays it on every supported Android version (its own Ogg parser + the platform Opus
+ * decoder present since Android 5). Missing files are reported so the UI can show a placeholder.
  */
 class RecitationPlayer(context: Context, private val listener: Listener) {
 
@@ -52,9 +56,16 @@ class RecitationPlayer(context: Context, private val listener: Listener) {
 
     fun resolve(audioFile: String): Uri? {
         if (audioFile.isBlank()) return null
-        val local = File(File(app.filesDir, "audio"), audioFile)
-        if (local.isFile && local.length() > 0) return Uri.fromFile(local)
-        if (audioFile in bundledAudio) return Uri.parse("asset:///audio/$audioFile")
+        val base = audioFile.substringBeforeLast('.')
+        val dirs = listOfNotNull(File(app.filesDir, "audio"), app.getExternalFilesDir("audio"))
+        for (ext in EXTENSIONS) {
+            val name = "$base.$ext"
+            for (dir in dirs) {
+                val f = File(dir, name)
+                if (f.isFile && f.length() > 0) return Uri.fromFile(f)
+            }
+            if (name in bundledAudio) return Uri.parse("asset:///audio/$name")
+        }
         return null
     }
 
@@ -96,4 +107,9 @@ class RecitationPlayer(context: Context, private val listener: Listener) {
     }
 
     fun release() = player.release()
+
+    companion object {
+        /** Preferred first: smallest → most compatible. */
+        val EXTENSIONS = listOf("opus", "ogg", "m4a", "mp3")
+    }
 }

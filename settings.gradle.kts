@@ -17,10 +17,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // Only used for the offline Tesseract OCR engine (Tesseract4Android).
-        maven("https://jitpack.io") {
-            content { includeGroupByRegex("com\\.github\\.adaptech-cz.*") }
-        }
     }
 }
 

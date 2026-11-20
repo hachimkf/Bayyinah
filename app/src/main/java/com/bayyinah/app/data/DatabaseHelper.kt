@@ -55,7 +55,7 @@ class DatabaseHelper(private val context: Context) {
     companion object {
         const val DB_NAME = "quran_warsh.db"
         /** Bump this whenever you ship a new quran_warsh.db so devices re-copy it. */
-        const val ASSET_DB_VERSION = 2
+        const val ASSET_DB_VERSION = 3
         private const val KEY_VERSION = "asset_db_version"
     }
 }

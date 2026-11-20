@@ -26,6 +26,7 @@ object AppIcons {
     val FlashOn = icon("M7,2v11h3v9l7,-12h-4l4,-8z")
     val FlashOff = icon("M3.27,3L2,4.27l5,5V13h3v9l3.58,-6.14L17.73,20 19,18.73 3.27,3zM17,10h-4l4,-8H7v2.18l8.46,8.46L17,10z")
     val Clear = Close
+    val ChevronDown = icon("M16.59,8.59L12,13.17 7.41,8.59 6,10l6,6 6,-6z")
 
     private fun icon(path: String): ImageVector =
         ImageVector.Builder(defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f)

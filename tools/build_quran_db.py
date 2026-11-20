@@ -61,7 +61,7 @@ def from_warsh_json(path: Path):
             i = first + a
             end = starts[i + 1] if i + 1 < len(starts) else len(words)
             text = " ".join(words[starts[i]:end])
-            verses.append((n * 1000 + a + 1, n, a + 1, name, text, normalize(text), f"{n:03d}{a + 1:03d}.m4a"))
+            verses.append((n * 1000 + a + 1, n, a + 1, name, text, normalize(text), f"{n:03d}{a + 1:03d}.opus"))
     return verses, surahs
 
 

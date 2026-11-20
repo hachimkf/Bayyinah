@@ -85,7 +85,7 @@ fun UpdateBanner(state: UpdateUi, vm: MainViewModel, modifier: Modifier = Modifi
                 // Action on its own row so the bilingual text never gets squeezed.
                 val action: Pair<String, () -> Unit>? = when (s) {
                     is UpdateUi.Available, is UpdateUi.Failed -> stringResource(R.string.update_button) to { vm.downloadUpdate() }
-                    is UpdateUi.Ready -> stringResource(R.string.update_install) to { activity?.let(vm::installUpdate); Unit }
+                    is UpdateUi.Ready -> stringResource(R.string.update_install) to { activity?.let(vm::installUpdate) }
                     else -> null
                 }
                 if (action != null) {

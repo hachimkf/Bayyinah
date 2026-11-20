@@ -6,8 +6,8 @@ plugins {
 }
 
 // ── Release version: bump BOTH before every GitHub release (tools/release.sh reads them). ──
-val appVersionCode = 3
-val appVersionName = "1.1.1"
+val appVersionCode = 4
+val appVersionName = "1.2.0"
 
 /** GitHub repo whose Releases the in-app updater checks ("owner/name"). */
 val updateRepo = "hachimkf/Bayyinah"
@@ -43,20 +43,8 @@ android {
         }
     }
 
-    // One APK per CPU family instead of one fat APK: Tesseract's native libs are most of the size.
-    // arm64-v8a = almost every phone since ~2017; armeabi-v7a = older / Android Go 32-bit phones.
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("arm64-v8a", "armeabi-v7a")
-            isUniversalApk = false
-        }
-    }
-
+    // No native code any more (camera/OCR removed): one small APK works on every phone.
     packaging {
-        // Store native libs compressed in the APK (≈55% smaller download/sideload file).
-        jniLibs { useLegacyPackaging = true }
         resources { excludes += listOf("/META-INF/{AL2.0,LGPL2.1}", "/META-INF/*.version", "/kotlin/**", "DebugProbesKt.bin") }
     }
 
@@ -84,7 +72,7 @@ android {
 
     androidResources {
         // Bundled audio is streamed straight out of the APK: keep it uncompressed for seeking.
-        // The DB and OCR model are copied out on first launch, so they stay compressed (smaller APK).
+        // The DB is copied out on first launch, so it stays compressed (smaller APK).
         noCompress += listOf("opus", "ogg", "m4a")
     }
 }
@@ -103,15 +91,7 @@ dependencies {
     implementation(libs.compose.material3)
     debugImplementation(libs.compose.ui.tooling)
 
-    implementation(libs.camera.core)
-    implementation(libs.camera.camera2)
-    implementation(libs.camera.lifecycle)
-    implementation(libs.camera.view)
-
     implementation(libs.media3.exoplayer)
-
-    // Offline Arabic OCR (Tesseract 5 + bundled ara.traineddata). See README for why not ML Kit.
-    implementation(libs.tesseract4android)
 
     testImplementation(libs.junit)
 }

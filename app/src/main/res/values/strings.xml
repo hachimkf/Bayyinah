@@ -1,18 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Bayyinah</string>
+    <string name="app_tagline">Warsh · ورش عن نافع</string>
 
-    <string name="frame_hint_ar">ضع الآية داخل الإطار</string>
-    <string name="frame_hint_fr">Cadrez le verset ici</string>
-    <string name="scan_ar">إقرأ واسمع</string>
-    <string name="scan_fr">ÉCOUTER</string>
-    <string name="scanning_ar">جارٍ القراءة…</string>
-    <string name="scanning_fr">Lecture du verset…</string>
-    <string name="no_match_ar">لم نتعرّف على الآية، حاول مجددًا</string>
-    <string name="no_match_fr">Verset non reconnu, réessayez</string>
-    <string name="loading_ar">جارٍ التحضير…</string>
-    <string name="loading_fr">Préparation…</string>
+    <!-- Quick jump -->
+    <string name="jump_title_ar">اذهب إلى آية</string>
+    <string name="jump_title_fr">Choisissez la sourate, tapez le numéro du verset</string>
+    <string name="surah_label">السورة · Sourate</string>
+    <string name="ayah_label">الآية · Verset</string>
+    <string name="jump_range_ar">من ١ إلى %1$s</string>
+    <string name="jump_range_fr">versets 1–%1$d</string>
+    <string name="jump_range_error_ar">رقم غير صحيح</string>
+    <string name="jump_range_error_fr">choisir 1–%1$d</string>
+    <string name="jump_go">اقرأ واسمع · Lire</string>
+    <string name="go_to_ayah">اذهب · Aller</string>
+    <string name="continue_ar">متابعة</string>
+    <string name="continue_fr">Reprendre %1$d:%2$d</string>
+    <string name="pick_surah">اختر السورة · Choisir la sourate</string>
+    <string name="pick_surah_hint">رقم أو اسم · numéro ou nom</string>
 
+    <!-- Search / list -->
+    <string name="search_hint">ابحث: كلمة، سورة، 18:10 · Rechercher</string>
+    <string name="surahs_section">السور · Sourates</string>
+    <string name="verses_section">الآيات · Versets</string>
+    <string name="no_results">لا نتائج · Aucun résultat</string>
+    <string name="makki">مكية</string>
+    <string name="madani">مدنية</string>
+    <string name="ayat_ar">%1$s آية</string>
+    <string name="ayat_fr">%1$d versets</string>
+
+    <!-- Player -->
     <string name="prev_ar">السابق</string>
     <string name="prev_fr">Précédent</string>
     <string name="next_ar">التالي</string>
@@ -24,31 +41,7 @@
     <string name="audio_missing_ar">التلاوة غير متوفرة لهذه الآية</string>
     <string name="audio_missing_fr">Audio indisponible pour ce verset</string>
 
-    <string name="perm_title_ar">نحتاج إلى الكاميرا</string>
-    <string name="perm_body_fr">Bayyinah utilise la caméra pour lire le verset dans votre livre. Tout reste sur le téléphone.</string>
-    <string name="perm_button">السماح • Autoriser</string>
-
-    <string name="cd_play">Lecture</string>
-    <string name="cd_pause">Pause</string>
-    <string name="cd_repeat">Répéter</string>
-    <string name="cd_prev">Verset précédent</string>
-    <string name="cd_next">Verset suivant</string>
-    <string name="cd_close">Retour à la caméra</string>
-    <string name="cd_scan">Lire le verset</string>
-    <string name="cd_torch">Lampe</string>
-    <string name="cd_back">Retour</string>
-
-    <string name="index_ar">الفهرس</string>
-    <string name="index_fr">Sommaire</string>
-    <string name="search_ar">بحث</string>
-    <string name="search_fr">Recherche</string>
-    <string name="index_title_fr">Les 114 sourates · Warsh</string>
-    <string name="search_hint">ابحث: كلمة، سورة، 18:10 · Rechercher</string>
-    <string name="surahs_section">السور · Sourates</string>
-    <string name="verses_section">الآيات · Versets</string>
-    <string name="no_results">لا نتائج · Aucun résultat</string>
-    <string name="makki">مكية</string>
-    <string name="madani">مدنية</string>
+    <!-- Updates -->
     <string name="update_available_ar">تحديث جديد متوفر</string>
     <string name="update_available_fr">Nouvelle version %1$s disponible</string>
     <string name="update_button">تحديث · Mettre à jour</string>
@@ -59,6 +52,13 @@
     <string name="update_failed">فشل التحميل · Échec, réessayer</string>
     <string name="update_checking">جارٍ البحث · Recherche de mise à jour…</string>
     <string name="update_uptodate">التطبيق محدّث · Bayyinah est à jour ✓</string>
-    <string name="ayat_ar">%1$s آية</string>
-    <string name="ayat_fr">%1$d versets</string>
+
+    <!-- Accessibility -->
+    <string name="cd_play">Lecture</string>
+    <string name="cd_pause">Pause</string>
+    <string name="cd_repeat">Répéter</string>
+    <string name="cd_prev">Verset précédent</string>
+    <string name="cd_next">Verset suivant</string>
+    <string name="cd_close">Fermer</string>
+    <string name="cd_back">Retour</string>
 </resources>

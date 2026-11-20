@@ -14,11 +14,10 @@ if gh release view "v$VERSION" --repo "$REPO" >/dev/null 2>&1; then
 fi
 
 ./gradlew :app:testDebugUnitTest :app:assembleRelease
-OUT=app/build/outputs/apk/release
 mkdir -p build/release
-for abi in arm64-v8a armeabi-v7a; do
-  cp "$OUT/app-$abi-release.apk" "build/release/Bayyinah-$VERSION-$abi-release.apk"
-done
+rm -f build/release/Bayyinah-"$VERSION"-*.apk
+# One APK for every phone. "universal" in the name is what the in-app updater looks for.
+cp app/build/outputs/apk/release/app-release.apk "build/release/Bayyinah-$VERSION-universal-release.apk"
 
 git tag -f "v$VERSION"
 git push origin "v$VERSION" --force
@@ -26,6 +25,6 @@ gh release create "v$VERSION" build/release/Bayyinah-"$VERSION"-*.apk \
   --repo "$REPO" --title "Bayyinah $VERSION" \
   --notes "$NOTES
 
-**Install / update:** most phones → \`arm64-v8a\`; older 32-bit phones → \`armeabi-v7a\`.
+**Install / update:** one APK for every Android phone (7.0+).
 Installed copies of Bayyinah offer this update automatically."
 echo "Published v$VERSION"
