@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bayyinah.app.audio.RecitationPlayer
+import com.bayyinah.app.data.Reciter
 import com.bayyinah.app.data.Surah
 import com.bayyinah.app.data.Verse
 import com.bayyinah.app.data.VerseRepository
@@ -36,8 +37,14 @@ sealed interface UpdateUi {
 /** Player sheet state. */
 data class UiState(
     val verse: Verse? = null,
+    /** False when the chosen reciter has no timing for this ayah. */
     val audioAvailable: Boolean = false,
     val isPlaying: Boolean = false,
+    val buffering: Boolean = false,
+    /** Set when streaming failed (usually no internet); cleared on retry / next ayah. */
+    val audioError: Boolean = false,
+    val reciters: List<Reciter> = emptyList(),
+    val reciter: Reciter? = null,
     val repeat: Boolean = false,
     val slow: Boolean = false,
     val progress: Float = 0f,
@@ -89,6 +96,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
     init {
         viewModelScope.launch {
             try {
+                val reciters = repository.reciters()
+                val chosen = reciters.firstOrNull { it.id == prefs.getInt(KEY_RECITER, -1) } ?: reciters.firstOrNull()
+                _state.update { it.copy(reciters = reciters, reciter = chosen) }
                 val surahs = repository.surahs()
                 val last = prefs.getInt(KEY_LAST_VERSE, 0).takeIf { it > 0 }?.let { repository.byId(it) }
                 val jumpSurah = surahs.firstOrNull { it.number == (last?.surah ?: 1) } ?: surahs.firstOrNull()
@@ -223,14 +233,28 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
 
     // ---------------------------------------------------------------- verse & audio
 
+    fun selectReciter(reciter: Reciter) {
+        prefs.edit().putInt(KEY_RECITER, reciter.id).apply()
+        _state.update { it.copy(reciter = reciter) }
+        // Reload the open ayah with the new voice, keeping play/pause as it was.
+        _state.value.verse?.let { v -> viewModelScope.launch { showVerse(v, autoplay = true) } }
+    }
+
+    fun retryAudio() {
+        _state.update { it.copy(audioError = false) }
+        player.retry()
+    }
+
     private suspend fun showVerse(verse: Verse, autoplay: Boolean) {
-        val available = player.load(verse.audioFile, playWhenReady = autoplay)
+        val clip = _state.value.reciter?.let { repository.clip(it, verse) }
+        val available = clip != null
+        player.load(clip, playWhenReady = autoplay)
         val hasPrev = repository.previous(verse) != null
         val hasNext = repository.next(verse) != null
         prefs.edit().putInt(KEY_LAST_VERSE, verse.id).apply()
         _state.update {
             it.copy(
-                verse = verse, audioAvailable = available, progress = 0f,
+                verse = verse, audioAvailable = available, progress = 0f, audioError = false,
                 isPlaying = false, hasPrevious = hasPrev, hasNext = hasNext,
             )
         }
@@ -257,14 +281,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         val current = _state.value.verse ?: return
         viewModelScope.launch {
             val target = find(current) ?: return@launch
-            // Keep playing if she was listening; repeat mode now loops the new verse.
-            showVerse(target, autoplay = _state.value.isPlaying)
+            // Stepping always plays the new ayah; repeat mode now loops it.
+            showVerse(target, autoplay = true)
         }
     }
 
     fun dismissVerse() {
         player.pause()
-        _state.update { it.copy(verse = null, isPlaying = false, progress = 0f) }
+        _state.update { it.copy(verse = null, isPlaying = false, buffering = false, progress = 0f) }
     }
 
     fun onAppBackgrounded() = player.pause()
@@ -282,10 +306,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         }
     }
 
+    override fun onBufferingChanged(buffering: Boolean) = _state.update { it.copy(buffering = buffering) }
+
     override fun onEnded() = _state.update { it.copy(progress = 1f) }
 
-    override fun onError(message: String) =
-        _state.update { it.copy(isPlaying = false, audioAvailable = false) }
+    override fun onError(network: Boolean) =
+        _state.update { it.copy(isPlaying = false, buffering = false, audioError = true) }
 
     override fun onCleared() {
         player.release()
@@ -294,6 +320,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
 
     private companion object {
         const val KEY_LAST_VERSE = "last_verse"
+        const val KEY_RECITER = "reciter"
 
         fun toLatinDigits(s: String) = buildString {
             for (c in s) append(

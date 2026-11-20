@@ -1,85 +1,101 @@
 package com.bayyinah.app.audio
 
 import android.content.Context
-import android.net.Uri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
-import java.io.File
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.extractor.DefaultExtractorsFactory
+import com.bayyinah.app.BuildConfig
+import com.bayyinah.app.data.AyahClip
 
 /**
- * Thin wrapper over Media3 ExoPlayer for single-verse recitation files.
+ * Streams one ayah at a time: a clip [start, end) of the reciter's whole-surah MP3.
  *
- * A verse's file is `SSSAAA.<ext>` (surah, ayah in Warsh numbering, e.g. `018010.opus`).
- * The extension in the DB is ignored: the first existing of [EXTENSIONS] wins, looked up in
- *  1. `filesDir/audio/`               – app-private storage (future in-app downloads),
- *  2. `Android/data/<pkg>/files/audio/` – copy files here over USB/adb, works on release builds,
- *  3. `assets/audio/`                   – audio bundled in the APK.
- * Opus (Ogg) is preferred: it is the smallest format that still sounds clear for recitation, and
- * ExoPlayer plays it on every supported Android version (its own Ogg parser + the platform Opus
- * decoder present since Android 5). Missing files are reported so the UI can show a placeholder.
+ * - Nothing is stored on the phone (no cache): only the ayah's bytes are fetched, via HTTP range
+ *   requests, thanks to constant-bitrate seeking (all supported recordings are CBR MP3s).
+ * - A small buffer makes playback start in well under a second on mobile data.
+ * - Repeat loops the clip; speed 0.75× / 1.0× applies immediately.
  */
 class RecitationPlayer(context: Context, private val listener: Listener) {
 
     interface Listener {
         fun onIsPlayingChanged(isPlaying: Boolean)
+        fun onBufferingChanged(buffering: Boolean)
         fun onEnded()
-        fun onError(message: String)
+        fun onError(network: Boolean)
     }
 
     private val app = context.applicationContext
-    private val bundledAudio: Set<String> = app.assets.list("audio")?.toSet().orEmpty()
 
-    val player: ExoPlayer = ExoPlayer.Builder(app)
-        .setAudioAttributes(
-            AudioAttributes.Builder()
-                .setUsage(C.USAGE_MEDIA)
-                .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
-                .build(),
-            /* handleAudioFocus = */ true,
-        )
-        .setHandleAudioBecomingNoisy(true) // pause when headphones are unplugged
-        .build()
-        .apply {
-            addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) = listener.onIsPlayingChanged(isPlaying)
-                override fun onPlaybackStateChanged(state: Int) {
-                    if (state == Player.STATE_ENDED) listener.onEnded()
-                }
-                override fun onPlayerError(error: PlaybackException) =
-                    listener.onError(error.errorCodeName)
-            })
-        }
-
-    fun resolve(audioFile: String): Uri? {
-        if (audioFile.isBlank()) return null
-        val base = audioFile.substringBeforeLast('.')
-        val dirs = listOfNotNull(File(app.filesDir, "audio"), app.getExternalFilesDir("audio"))
-        for (ext in EXTENSIONS) {
-            val name = "$base.$ext"
-            for (dir in dirs) {
-                val f = File(dir, name)
-                if (f.isFile && f.length() > 0) return Uri.fromFile(f)
+    val player: ExoPlayer = run {
+        val http = DefaultHttpDataSource.Factory()
+            .setUserAgent("Bayyinah-Android/${BuildConfig.VERSION_NAME}")
+            .setConnectTimeoutMs(10_000)
+            .setReadTimeoutMs(15_000)
+            .setAllowCrossProtocolRedirects(true)
+        // CBR seeking lets ExoPlayer jump straight to the ayah's byte offset (no Xing table needed).
+        val extractors = DefaultExtractorsFactory()
+            .setConstantBitrateSeekingEnabled(true)
+            .setConstantBitrateSeekingAlwaysEnabled(true)
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                /* minBufferMs = */ 4_000,
+                /* maxBufferMs = */ 12_000,      // never fetch far past the ayah
+                /* bufferForPlaybackMs = */ 400,  // start almost immediately
+                /* bufferForPlaybackAfterRebufferMs = */ 1_000,
+            )
+            .build()
+        ExoPlayer.Builder(app)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(app, http), extractors))
+            .setLoadControl(loadControl)
+            .setAudioAttributes(
+                AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_SPEECH).build(),
+                /* handleAudioFocus = */ true,
+            )
+            .setHandleAudioBecomingNoisy(true) // pause when headphones are unplugged
+            .build()
+            .apply {
+                addListener(object : Player.Listener {
+                    override fun onIsPlayingChanged(isPlaying: Boolean) = listener.onIsPlayingChanged(isPlaying)
+                    override fun onPlaybackStateChanged(state: Int) {
+                        listener.onBufferingChanged(state == Player.STATE_BUFFERING)
+                        if (state == Player.STATE_ENDED) listener.onEnded()
+                    }
+                    override fun onPlayerError(error: PlaybackException) {
+                        android.util.Log.w("BayyinahAudio", "Playback error ${error.errorCodeName}", error)
+                        listener.onError(network = error.errorCode in 2000..2999)
+                    }
+                })
             }
-            if (name in bundledAudio) return Uri.parse("asset:///audio/$name")
-        }
-        return null
     }
 
-    fun isAvailable(audioFile: String): Boolean = resolve(audioFile) != null
-
-    /** Loads the verse; returns false (and clears the player) if its audio is missing. */
-    fun load(audioFile: String, playWhenReady: Boolean): Boolean {
-        val uri = resolve(audioFile)
-        if (uri == null) { player.stop(); player.clearMediaItems(); return false }
-        player.setMediaItem(MediaItem.fromUri(uri))
+    /** Loads (and optionally starts) the ayah clip; null clears the player. */
+    fun load(clip: AyahClip?, playWhenReady: Boolean) {
+        if (clip == null) { player.stop(); player.clearMediaItems(); return }
+        player.setMediaItem(
+            MediaItem.Builder()
+                .setUri(clip.url)
+                .setClippingConfiguration(
+                    MediaItem.ClippingConfiguration.Builder()
+                        .setStartPositionMs(clip.startMs)
+                        .setEndPositionMs(clip.endMs)
+                        .build()
+                )
+                .build()
+        )
         player.prepare()
         player.playWhenReady = playWhenReady
-        return true
     }
+
+    /** After a network error: try the same ayah again. */
+    fun retry() { player.prepare(); player.play() }
 
     fun togglePlay() {
         if (player.mediaItemCount == 0) return
@@ -87,18 +103,19 @@ class RecitationPlayer(context: Context, private val listener: Listener) {
             player.pause()
         } else {
             if (player.playbackState == Player.STATE_ENDED) player.seekTo(0)
+            if (player.playbackState == Player.STATE_IDLE) player.prepare()
             player.play()
         }
     }
 
     fun pause() = player.pause()
 
-    /** REPEAT_MODE_ONE loops the current verse until toggled off or the verse changes. */
+    /** REPEAT_MODE_ONE loops the current ayah until toggled off or the ayah changes. */
     fun setLooping(loop: Boolean) {
         player.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
     }
 
-    /** Applies immediately to current playback and persists for following verses. */
+    /** Applies immediately to current playback and persists for following ayat. */
     fun setSpeed(speed: Float) = player.setPlaybackSpeed(speed)
 
     fun progress(): Float {
@@ -107,9 +124,4 @@ class RecitationPlayer(context: Context, private val listener: Listener) {
     }
 
     fun release() = player.release()
-
-    companion object {
-        /** Preferred first: smallest → most compatible. */
-        val EXTENSIONS = listOf("opus", "ogg", "m4a", "mp3")
-    }
 }

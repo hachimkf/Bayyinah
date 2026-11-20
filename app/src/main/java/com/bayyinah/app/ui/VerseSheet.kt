@@ -40,6 +40,7 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -49,6 +50,7 @@ import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -122,7 +124,9 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse) {
                 Spacer(Modifier.width(12.dp))
                 AyahBadge(verse.ayah, size = 60)
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
+            ReciterChip(state, onPick = vm::selectReciter)
+            Spacer(Modifier.height(10.dp))
 
             // The verse on a soft mint card, large KFGQPC Warsh script.
             val fontSize = when {
@@ -148,20 +152,15 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse) {
             }
             Spacer(Modifier.height(14.dp))
 
-            if (state.audioAvailable) {
-                LinearWavyProgressIndicator(
+            when {
+                !state.audioAvailable -> Notice(stringResource(R.string.audio_missing_ar), stringResource(R.string.audio_missing_fr))
+                state.audioError -> Notice(stringResource(R.string.audio_offline_ar), stringResource(R.string.audio_offline_fr), action = stringResource(R.string.retry), onAction = vm::retryAudio)
+                else -> LinearWavyProgressIndicator(
                     progress = { state.progress },
                     color = Emerald,
                     trackColor = Parchment,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).height(14.dp),
                 )
-            } else {
-                Surface(color = AmberSoft, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.audio_missing_ar), fontWeight = FontWeight.Bold, color = AmberDeep)
-                        Text(stringResource(R.string.audio_missing_fr), fontSize = 13.sp, color = AmberDeep)
-                    }
-                }
             }
             Spacer(Modifier.height(14.dp))
 
@@ -176,7 +175,7 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse) {
                     stringResource(R.string.prev_ar), stringResource(R.string.prev_fr), stringResource(R.string.cd_prev),
                 ) { haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); vm.previous() }
 
-                PlayButton(state.isPlaying, state.audioAvailable) {
+                PlayButton(state.isPlaying, state.buffering, state.audioAvailable) {
                     haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); vm.togglePlay()
                 }
 
@@ -195,6 +194,70 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse) {
             SpeedSelector(state.slow) {
                 haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                 vm.setSlow(it)
+            }
+        }
+    }
+}
+
+/** Amber notice with an optional action (e.g. retry). */
+@Composable
+private fun Notice(ar: String, fr: String, action: String? = null, onAction: () -> Unit = {}) {
+    Surface(color = AmberSoft, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(ar, fontWeight = FontWeight.Bold, color = AmberDeep)
+                Text(fr, fontSize = 13.sp, color = AmberDeep)
+            }
+            if (action != null) {
+                Spacer(Modifier.width(10.dp))
+                androidx.compose.material3.Button(
+                    onClick = onAction,
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Emerald, contentColor = Cream),
+                    shape = CircleShape, modifier = Modifier.height(48.dp),
+                ) { Text(action, fontWeight = FontWeight.Bold) }
+            }
+        }
+    }
+}
+
+/** "القارئ · Omar Al-Qazabri ▾" — opens the reciter list. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun ReciterChip(state: UiState, onPick: (com.bayyinah.app.data.Reciter) -> Unit) {
+    val r = state.reciter ?: return
+    var open by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    Surface(onClick = { open = true }, color = Mint, shape = CircleShape, modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Icon(AppIcons.Listen, null, tint = Emerald, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(10.dp))
+            // Stacked names: long names (e.g. Mahmoud Khalil Al-Husary) never collide.
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                Text(r.nameAr, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = EmeraldDeep, maxLines = 1)
+                Text(r.nameEn, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.width(6.dp))
+            Icon(AppIcons.ChevronDown, null, tint = Emerald, modifier = Modifier.size(22.dp))
+        }
+    }
+    if (open) {
+        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { open = false }, containerColor = Cream) {
+            Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.pick_reciter), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = EmeraldDeep,
+                    modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End)
+                Text(stringResource(R.string.reciter_source), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End)
+                state.reciters.forEach { rc ->
+                    val sel = rc.id == r.id
+                    Surface(onClick = { onPick(rc); open = false }, color = if (sel) EmeraldDeep else Mint, contentColor = if (sel) Cream else EmeraldDeep,
+                        shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().height(68.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 18.dp)) {
+                            Text(rc.nameEn, fontSize = 14.sp)
+                            Spacer(Modifier.weight(1f))
+                            Text(rc.nameAr, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        }
+                    }
+                }
             }
         }
     }
@@ -222,7 +285,7 @@ private fun pressScale(source: MutableInteractionSource): Float {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun PlayButton(playing: Boolean, enabled: Boolean, onClick: () -> Unit) {
+private fun PlayButton(playing: Boolean, buffering: Boolean, enabled: Boolean, onClick: () -> Unit) {
     val source = remember { MutableInteractionSource() }
     val morph = remember { Morph(MaterialShapes.Circle, MaterialShapes.Cookie9Sided) }
     val progress by animateFloatAsState(if (playing) 1f else 0f, MaterialTheme.motionScheme.slowSpatialSpec(), label = "morph")
@@ -247,10 +310,16 @@ private fun PlayButton(playing: Boolean, enabled: Boolean, onClick: () -> Unit) 
             .semantics { contentDescription = desc; role = Role.Button },
     ) {
         AnimatedContent(
-            targetState = playing,
+            targetState = if (buffering) 2 else if (playing) 1 else 0,
             transitionSpec = { scaleIn() + fadeIn() togetherWith scaleOut() + fadeOut() },
             label = "playIcon",
-        ) { p -> Icon(if (p) AppIcons.Pause else AppIcons.Play, null, tint = Amber, modifier = Modifier.size(52.dp)) }
+        ) { p ->
+            when (p) {
+                2 -> LoadingIndicator(color = Amber, modifier = Modifier.size(60.dp)) // fetching the ayah
+                1 -> Icon(AppIcons.Pause, null, tint = Amber, modifier = Modifier.size(52.dp))
+                else -> Icon(AppIcons.Play, null, tint = Amber, modifier = Modifier.size(52.dp))
+            }
+        }
     }
 }
 

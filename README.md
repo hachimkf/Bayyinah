@@ -4,7 +4,7 @@ A light, offline Android app for a learner reciting the Quran in **Warsh 'an Naf
 **choose a surah, type the ayah number, listen and repeat.**
 
 Kotlin · Jetpack Compose · Material 3 Expressive (`material3:1.5.0`) · Media3 ExoPlayer.
-APK ≈ **2.8 MB**. Works fully offline; internet is only used to check for app updates.
+APK ≈ **3 MB**. Text, search and navigation work offline; recitation streams ayah by ayah (internet needed).
 
 ## Using it
 
@@ -24,42 +24,42 @@ Download `Bayyinah-<version>-universal-release.apk` from the latest
 **[GitHub Release](https://github.com/hachimkf/Bayyinah/releases/latest)** and open it on the phone. One APK
 works on every phone (Android 7+).
 
-## Audio (recitation)
+## Audio (recitation) — streamed, nothing stored
 
-### Format: Opus, mono, 16 kbps
+Each ayah plays online as a short clip of a whole-surah Warsh recording from
+[mp3quran.net](https://mp3quran.net), using its published per-ayah timings (Warsh numbering). The timings
+ship inside the app (`timings` table, ~170 KB). Only the audio itself comes from the network.
 
-Measured on a 3½-minute Arabic speech sample, extrapolated to a ~28 h murattal recitation of the whole Quran:
+| Reciter | Boundaries inside the reciter's pause* |
+|---|---|
+| Omar Al-Qazabri · عمر القزابري (default, Moroccan) | 91% |
+| Mahmoud Khalil Al-Husary · محمود خليل الحصري (slow, very clear) | 98% |
+| El Ayoun El Kouchi · العيون الكوشي (Moroccan) | 80% |
+| Yassin Al-Jazairi · ياسين الجزائري | 90% |
 
-| Format | Size per hour | Whole Quran (~28 h) |
-|---|---|---|
-| **Opus 12 kbps** | 5.4 MB | ~150 MB (noticeably duller) |
-| **Opus 16 kbps (recommended)** | 7.4 MB | **~206 MB** |
-| Opus 20 kbps | 9.0 MB | ~252 MB |
-| Opus 24 kbps | 10.7 MB | ~299 MB |
-| HE-AAC 24 kbps (.m4a) | 10.9 MB | ~304 MB |
-| MP3 32 kbps | 13.7 MB | ~385 MB |
-| MP3 64 kbps (typical download) | 27.5 MB | ~769 MB |
+\* Measured on 12 surahs by detecting the pauses in each recording. The rest are within about a second.
+Muhammad Saayed was left out because his timings use Hafs numbering.
 
-Opus is the smallest format that still sounds clear for tajweed. ExoPlayer plays it on every Android
-version the app supports. A short verse at 16 kbps is about 10–20 KB. Listen to the samples in
-`build/audio-samples/` (made locally, not committed) before choosing.
+- **How it streams:** the recordings are constant-bitrate MP3s, so ExoPlayer jumps straight to the ayah's byte
+  offset with an HTTP range request. Playback starts after about 0.4 s of buffer, which is roughly 0.25 s of
+  network time from Morocco/Europe on the Cloudflare CDN.
+- **Data use:** about 1 MB per minute (128 kbps). Nothing is cached on the phone.
+- **Offline:** text, search and navigation work. Audio shows «تعذّر تشغيل التلاوة · Vérifiez la connexion» with
+  a Retry button.
+- **She chooses the reciter** from the chip in the player. The choice is remembered.
 
-### Getting files into the app
+To refresh or add reciters with timings (`read` ids listed at `https://mp3quran.net/api/v3/ayat_timing/reads`):
 
-1. Name one file per verse `SSSAAA` (surah and ayah, 3 digits each, e.g. `018010.mp3`). This is the EveryAyah
-   naming, and it must use **Warsh numbering**: some sites number Warsh audio with the Hafs count, so check a
-   few verses in Ta-Ha first.
-2. Convert:
-   ```bash
-   tools/convert_audio.sh ~/Downloads/recitation ~/Downloads/recitation-opus 16
-   ```
-3. Copy to the phone (USB debugging on). This works with the normal release app:
-   ```bash
-   tools/push_audio.sh ~/Downloads/recitation-opus
-   ```
+```bash
+python3 tools/fetch_timings.py
+```
 
-The app looks for `SSSAAA.opus`, then `.ogg`, `.m4a`, `.mp3`, in `Android/data/com.bayyinah.app/files/audio/`,
-app-private storage, or `assets/audio/` (bundled). A verse without a file shows "Audio indisponible".
+```bash
+python3 tools/build_quran_db.py tools/source/warsh.json app/src/main/assets/quran_warsh.db
+```
+
+Recordings are © their reciters/producers. The app streams them from their original host and doesn't
+redistribute them.
 
 ## Text source
 

@@ -40,6 +40,11 @@
     <string name="normal_label">عادي • NORMAL</string>
     <string name="audio_missing_ar">التلاوة غير متوفرة لهذه الآية</string>
     <string name="audio_missing_fr">Audio indisponible pour ce verset</string>
+    <string name="audio_offline_ar">تعذّر تشغيل التلاوة</string>
+    <string name="audio_offline_fr">Vérifiez la connexion internet</string>
+    <string name="retry">أعد · Réessayer</string>
+    <string name="pick_reciter">اختر القارئ · Choisir le récitant</string>
+    <string name="reciter_source">رواية ورش عن نافع · تلاوات mp3quran.net</string>
 
     <!-- Updates -->
     <string name="update_available_ar">تحديث جديد متوفر</string>

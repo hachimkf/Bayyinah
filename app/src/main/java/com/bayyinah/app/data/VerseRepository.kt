@@ -37,6 +37,23 @@ class VerseRepository(context: Context) {
         }
     }
 
+    suspend fun reciters(): List<Reciter> = withContext(Dispatchers.IO) {
+        db().rawQuery("SELECT id, name_ar, name_en, folder_url FROM reciters ORDER BY sort", null).use { c ->
+            buildList(c.count) { while (c.moveToNext()) add(Reciter(c.getInt(0), c.getString(1), c.getString(2), c.getString(3))) }
+        }
+    }
+
+    /** The streaming clip for [verse] in [reciter]'s recording, or null if it has no timing. */
+    suspend fun clip(reciter: Reciter, verse: Verse): AyahClip? = withContext(Dispatchers.IO) {
+        db().rawQuery(
+            "SELECT start_ms, end_ms FROM timings WHERE reciter = ? AND verse_id = ?",
+            arrayOf(reciter.id.toString(), verse.id.toString()),
+        ).use { c ->
+            if (!c.moveToFirst()) null
+            else AyahClip("${reciter.folderUrl}${"%03d".format(verse.surah)}.mp3", c.getLong(0), c.getLong(1))
+        }
+    }
+
     suspend fun versesOf(surah: Int): List<Verse> =
         query("SELECT $COLUMNS FROM verses WHERE surah = ? ORDER BY ayah", surah.toString())
 

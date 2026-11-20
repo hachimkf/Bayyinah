@@ -61,7 +61,7 @@ def from_warsh_json(path: Path):
             i = first + a
             end = starts[i + 1] if i + 1 < len(starts) else len(words)
             text = " ".join(words[starts[i]:end])
-            verses.append((n * 1000 + a + 1, n, a + 1, name, text, normalize(text), f"{n:03d}{a + 1:03d}.opus"))
+            verses.append((n * 1000 + a + 1, n, a + 1, name, text, normalize(text), ""))
     return verses, surahs
 
 
@@ -73,9 +73,31 @@ def from_tsv(path: Path):
         surah, ayah, name, text, audio = line.split("\t")
         s, a = int(surah), int(ayah)
         names.setdefault(s, [name.strip(), 0])[1] += 1
-        verses.append((s * 1000 + a, s, a, name.strip(), text.strip(), normalize(text), audio.strip()))
+        verses.append((s * 1000 + a, s, a, name.strip(), text.strip(), normalize(text), ""))
     surahs = [(s, n, "", "", c) for s, (n, c) in sorted(names.items())]
     return verses, surahs
+
+
+# Default reciter first. ids are mp3quran.net "read" ids (see tools/fetch_timings.py).
+RECITER_ORDER = [80, 120, 16, 14]
+
+
+def load_timings(verse_ids):
+    """Reciters + per-ayah [start_ms, end_ms] from tools/source/timings/*.json (Warsh numbering)."""
+    tdir = Path(__file__).parent / "source" / "timings"
+    reciters, timings = [], []
+    for pos, rid in enumerate(RECITER_ORDER):
+        f = tdir / f"{rid}.json"
+        if not f.exists():
+            continue
+        d = json.loads(f.read_text(encoding="utf-8"))
+        reciters.append((rid, d["name_ar"], d["name_en"], d["folder"], pos))
+        for s, rows in d["surahs"].items():
+            for a, (start, end) in enumerate(rows, start=1):
+                vid = int(s) * 1000 + a
+                if vid in verse_ids and end > start:
+                    timings.append((rid, vid, start, end))
+    return reciters, timings
 
 
 def main(src: str, dst: str) -> None:
@@ -104,13 +126,33 @@ def main(src: str, dst: str) -> None:
             revelation TEXT NOT NULL,
             ayah_count INTEGER NOT NULL
         );
+        -- Online recitation: one whole-surah MP3 per reciter ({folder}{SSS}.mp3), played as a
+        -- clip [start_ms, end_ms) per ayah. Timings from mp3quran.net, Warsh numbering.
+        CREATE TABLE reciters (
+            id INTEGER PRIMARY KEY,
+            name_ar TEXT NOT NULL,
+            name_en TEXT NOT NULL,
+            folder_url TEXT NOT NULL,
+            sort INTEGER NOT NULL
+        );
+        CREATE TABLE timings (
+            reciter INTEGER NOT NULL,
+            verse_id INTEGER NOT NULL,
+            start_ms INTEGER NOT NULL,
+            end_ms INTEGER NOT NULL,
+            PRIMARY KEY (reciter, verse_id)
+        ) WITHOUT ROWID;
     """)
     con.executemany("INSERT INTO verses VALUES (?,?,?,?,?,?,?)", verses)
     con.executemany("INSERT INTO surahs VALUES (?,?,?,?,?)", surahs)
+    reciters, timings = load_timings({v[0] for v in verses})
+    con.executemany("INSERT INTO reciters VALUES (?,?,?,?,?)", reciters)
+    con.executemany("INSERT INTO timings VALUES (?,?,?,?)", timings)
     con.commit()
     con.execute("VACUUM")
     con.close()
-    print(f"Wrote {len(verses)} verses / {len(surahs)} surahs to {out} ({out.stat().st_size // 1024} KB)")
+    print(f"Wrote {len(verses)} verses / {len(surahs)} surahs / {len(reciters)} reciters / "
+          f"{len(timings)} timings to {out} ({out.stat().st_size // 1024} KB)")
 
 
 if __name__ == "__main__":
