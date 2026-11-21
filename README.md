@@ -8,25 +8,27 @@ APK ≈ **7.5 MB** (scanner OCR included). Text, search and navigation work offl
 
 ## Using it
 
-- **اذهب إلى آية · Quick jump** (top card):
+- The interface is **Arabic only** and laid out right-to-left.
+- **اذهب إلى آية** (quick jump, top card):
   1. Tap the surah field and pick from the list (filter by number `67` or name `ملك` / `mulk`).
   2. Type the ayah number on the number pad.
-  3. Tap **اقرأ واسمع · Lire**. An out-of-range number shows "choisir 1–31" instead of opening anything.
-- **امسح · Scanner le livre** (next to Lire) opens the camera. Frame the verse in the box: scanning is
+  3. Tap **اقرأ واسمع**. An out-of-range number shows «رقم غير صحيح» instead of opening anything.
+- **امسح من الكتاب** (next to اقرأ واسمع) opens the camera. Frame the verse in the box: scanning is
   **automatic** (no button). When the ayah is recognised, the camera closes and the ayah plays in a
   **full-screen player**. «امسح آية أخرى» or Back returns to the camera. On-device OCR (Tesseract) identifies the ayah among all 6,214 and opens it in the player. The camera
   permission is only asked the first time. Measured: 118/120 degraded test verses, 8/11 crops of a
   Maghribi-script page, 0 false matches on non-Quran text (`OcrRegressionTest`).
-- **كتابي · Mon livre:** her book «أقرأ وأتعلم – المستوى الثاني», published by the Ministry of Habous. It
+- **كتابي:** her book «أقرأ وأتعلم – المستوى الثاني», published by the Ministry of Habous. It
   lists the 24 Quran lessons in book order (page number, surah, ayat). She can also type a **page number**
   (e.g. 93), and the app opens the lesson printed on that page and lists only its ayat.
-- **⚙ Réglages:** app version, **Vérifier** (check for updates now), automatic update check on/off,
+- **⚙ الإعدادات:** app version, **Vérifier** (check for updates now), automatic update check on/off,
   reciter, and sources.
-- **متابعة · Reprendre** reopens the last verse she listened to.
+- **♥ المحفوظات** (heart beside the logo): ayat she marked with the heart in the player, and the last 30 she listened to.
+- **السور** list is folded by default; tap it to show the 114 surahs.
 - **Search** finds words without tashkeel (`رب العلمين`), surah names (`الكهف`, `kahf`), or references
   (`18:10`, `18 10`).
 - **Surah page:** tap a surah to see all its ayat. The "go to ayah" field there scrolls to the ayah and plays it.
-- **Player:** Play/Pause, Repeat (loops the verse), Previous/Next, Slow 0.75× / Normal.
+- **Player:** Play/Pause, Repeat ∞ (loops the verse), Previous/Next, Slow 0.75× / Normal, heart. The screen behind it is blurred and dimmed; tap it to close.
 
 ## Install
 
@@ -87,7 +89,7 @@ Muhammad Saayed was left out because his timings use Hafs numbering.
   offset with an HTTP range request. Playback starts after about 0.4 s of buffer, which is roughly 0.25 s of
   network time from Morocco/Europe on the Cloudflare CDN.
 - **Data use:** about 1 MB per minute (128 kbps). Nothing is cached on the phone.
-- **Offline:** text, search and navigation work. Audio shows «تعذّر تشغيل التلاوة · Vérifiez la connexion» with
+- **Offline:** text, search and navigation work. Audio shows «تعذّر تشغيل التلاوة، تحقق من الإنترنت» with
   a Retry button.
 - **She chooses the reciter** from the chip in the player. The choice is remembered.
 
@@ -119,8 +121,8 @@ Bump `ASSET_DB_VERSION` in `DatabaseHelper.kt` whenever the database changes.
 
 ## In-app updates
 
-On launch (at most every 12 h, can be switched off in Réglages), when she taps the **بيّنة** logo, or from
-**Réglages → Vérifier**, the app checks this repo's latest release. If there's a newer version, a banner offers **تحديث · Mettre à jour**. The app downloads the APK,
+On launch (at most every 12 h, can be switched off in الإعدادات), when she taps the **بيّنة** logo, or from
+**الإعدادات → ابحث عن تحديث**, the app checks this repo's latest release. If there's a newer version, a banner offers **تحديث**. The app downloads the APK,
 checks its SHA-256 against GitHub, then opens Android's installer. The first time, Android asks to allow
 installs from Bayyinah.
 

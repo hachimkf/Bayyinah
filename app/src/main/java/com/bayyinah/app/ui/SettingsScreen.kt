@@ -53,17 +53,18 @@ import com.bayyinah.app.ui.theme.Sand
 fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
     val context = LocalContext.current
     Column(Modifier.fillMaxSize().background(Cream).statusBarsPadding()) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = SidePad, vertical = 16.dp)) {
             FilledTonalIconButton(
                 onClick = { vm.backToHome() }, modifier = Modifier.size(56.dp),
                 colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Mint, contentColor = EmeraldDeep),
             ) { Icon(AppIcons.Back, stringResource(R.string.cd_back), Modifier.size(28.dp)) }
-            Spacer(Modifier.weight(1f))
-            Text(stringResource(R.string.settings_title), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = EmeraldDeep)
+            Text(stringResource(R.string.settings_title), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = EmeraldDeep,
+                textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+            Spacer(Modifier.width(56.dp))
         }
         Column(
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).navigationBarsPadding(),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = SidePad).navigationBarsPadding(),
         ) {
             // Updates
             Section(stringResource(R.string.settings_updates), color = EmeraldDeep, content = Cream) {
@@ -86,9 +87,9 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
                         colors = SwitchDefaults.colors(checkedTrackColor = Amber, checkedThumbColor = EmeraldDeep),
                     )
                     Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                        Text(stringResource(R.string.settings_auto), fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
-                        Text(stringResource(R.string.settings_auto_desc), fontSize = 12.sp, color = Cream.copy(alpha = 0.75f), textAlign = TextAlign.End)
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.settings_auto), fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.settings_auto_desc), fontSize = 13.sp, color = Cream.copy(alpha = 0.75f))
                     }
                 }
             }
@@ -102,10 +103,8 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
                         color = if (sel) EmeraldDeep else Cream, contentColor = if (sel) Cream else EmeraldDeep,
                         shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth().height(64.dp).padding(vertical = 3.dp),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp)) {
-                            Text(rc.nameEn, fontSize = 14.sp)
-                            Spacer(Modifier.weight(1f))
-                            Text(rc.nameAr, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) {
+                            Text(rc.nameAr, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         }
                     }
                 }
@@ -113,7 +112,7 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
 
             // About
             Section(stringResource(R.string.settings_about), color = Sand, content = Ink) {
-                Text(stringResource(R.string.settings_about_text), fontSize = 13.sp, lineHeight = 19.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.settings_about_text), fontSize = 14.sp, lineHeight = 22.sp, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(10.dp))
                 Surface(
                     onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${BuildConfig.UPDATE_REPO}"))) },
@@ -132,7 +131,7 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
 private fun Section(title: String, color: androidx.compose.ui.graphics.Color, content: androidx.compose.ui.graphics.Color, body: @Composable () -> Unit) {
     Surface(color = color, contentColor = content, shape = RoundedCornerShape(32.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(18.dp)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 19.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End)
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 20.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
             Spacer(Modifier.height(10.dp))
             body()
         }

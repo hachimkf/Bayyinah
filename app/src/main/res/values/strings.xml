@@ -1,113 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Bayyinah</string>
-    <string name="app_tagline">Warsh · ورش عن نافع</string>
+    <string name="app_tagline">ورش عن نافع</string>
 
     <!-- Quick jump -->
-    <string name="jump_title_ar">اذهب إلى آية</string>
-    <string name="jump_title_fr">Choisissez la sourate, tapez le numéro du verset</string>
-    <string name="surah_label">السورة · Sourate</string>
-    <string name="ayah_label">الآية · Verset</string>
-    <string name="jump_range_ar">من ١ إلى %1$s</string>
-    <string name="jump_range_fr">versets 1–%1$d</string>
-    <string name="jump_range_error_ar">رقم غير صحيح</string>
-    <string name="jump_range_error_fr">choisir 1–%1$d</string>
-    <string name="jump_go">اقرأ واسمع · Lire</string>
-    <string name="go_to_ayah">اذهب · Aller</string>
-    <string name="continue_ar">متابعة</string>
-    <string name="continue_fr">Reprendre %1$d:%2$d</string>
-    <string name="pick_surah">اختر السورة · Choisir la sourate</string>
-    <string name="pick_surah_hint">رقم أو اسم · numéro ou nom</string>
+    <string name="jump_title">اذهب إلى آية</string>
+    <string name="jump_subtitle">اختر السورة واكتب رقم الآية</string>
+    <string name="surah_label">السورة</string>
+    <string name="ayah_label">الآية</string>
+    <string name="jump_range">من ١ إلى %1$s</string>
+    <string name="jump_range_error">رقم غير صحيح، من ١ إلى %1$s</string>
+    <string name="go_to_ayah">اذهب</string>
+    <string name="pick_surah">اختر السورة</string>
+    <string name="pick_surah_hint">رقم أو اسم السورة</string>
 
     <!-- Scanner -->
-    <string name="read_ar">اقرأ واسمع</string>
-    <string name="read_fr">Lire</string>
-    <string name="scan_btn_ar">امسح</string>
-    <string name="scan_btn_fr">Scanner le livre</string>
-    <string name="scan_title">امسح الآية · Scanner un verset</string>
-    <string name="frame_hint_ar">ضع الآية داخل الإطار</string>
-    <string name="frame_hint_fr">Cadrez le verset ici</string>
-    <string name="scan_ar">إقرأ واسمع</string>
-    <string name="scan_fr">ÉCOUTER</string>
-    <string name="scanning_ar">وجّه الكاميرا نحو الآية</string>
-    <string name="scanning_fr">Recherche automatique… la récitation démarre seule</string>
-    <string name="no_match_ar">لم نتعرّف على الآية، حاول مجددًا</string>
-    <string name="no_match_fr">Verset non reconnu, réessayez</string>
-    <string name="loading_ar">جارٍ التحضير…</string>
-    <string name="loading_fr">Préparation…</string>
-    <string name="cd_torch">Lampe</string>
-    <string name="cd_scan">Lire le verset</string>
-    <string name="cd_refocus">Refaire la mise au point</string>
-    <string name="scan_again">امسح آية أخرى · Scanner un autre verset</string>
+    <string name="read">اقرأ واسمع</string>
+    <string name="scan_btn">امسح من الكتاب</string>
+    <string name="scan_title">امسح الآية</string>
+    <string name="frame_hint">ضع الآية داخل الإطار</string>
+    <string name="scanning">وجّه الكاميرا نحو الآية</string>
+    <string name="scanning_sub">البحث تلقائي، والتلاوة تبدأ وحدها</string>
+    <string name="no_match">لم نتعرّف على الآية، حاول مجددًا</string>
+    <string name="loading">جارٍ التحضير…</string>
+    <string name="cd_torch">المصباح</string>
+    <string name="cd_refocus">أعد التركيز</string>
+    <string name="scan_again">امسح آية أخرى</string>
 
     <!-- Settings -->
-    <string name="settings_title">الإعدادات · Réglages</string>
-    <string name="cd_settings">Réglages</string>
-    <string name="settings_updates">التحديثات · Mises à jour</string>
-    <string name="settings_version">الإصدار · Version %1$s</string>
-    <string name="settings_check_now">ابحث عن تحديث · Vérifier</string>
-    <string name="settings_auto">تحقق تلقائيًا · Vérifier automatiquement</string>
-    <string name="settings_auto_desc">عند فتح التطبيق، مرة كل 12 ساعة · Au démarrage, au plus toutes les 12 h</string>
-    <string name="settings_reciter">القارئ · Récitant</string>
-    <string name="settings_about">حول التطبيق · À propos</string>
-    <string name="settings_about_text">Texte : Mushaf Warsh du Complexe du Roi Fahd (KFGQPC) via quran-ws/quran-text (CC BY 4.0). Récitations : mp3quran.net, diffusées en ligne, © leurs récitants. Lecture du verset : Tesseract OCR, sur l’appareil.</string>
-    <string name="settings_source">الشيفرة المصدرية · Code source sur GitHub</string>
+    <string name="settings_title">الإعدادات</string>
+    <string name="cd_settings">الإعدادات</string>
+    <string name="settings_updates">التحديثات</string>
+    <string name="settings_version">الإصدار %1$s</string>
+    <string name="settings_check_now">ابحث عن تحديث</string>
+    <string name="settings_auto">تحقق تلقائيًا</string>
+    <string name="settings_auto_desc">عند فتح التطبيق، مرة كل ١٢ ساعة</string>
+    <string name="settings_reciter">القارئ</string>
+    <string name="settings_about">حول التطبيق</string>
+    <string name="settings_about_text">النص: مصحف ورش من مجمع الملك فهد لطباعة المصحف الشريف (quran-ws/quran-text، CC BY 4.0). التلاوات: mp3quran.net، تُبثّ عبر الإنترنت، وحقوقها لأصحابها. التعرّف على الآيات يتم على الهاتف.</string>
+    <string name="settings_source">الشيفرة المصدرية على GitHub</string>
 
     <!-- Her book -->
-    <string name="book_title_ar">كتابي: أقرأ وأتعلم</string>
-    <string name="book_title_fr">Mon livre · Niveau 2 · 24 leçons du Coran</string>
+    <string name="book_title">كتابي: أقرأ وأتعلم</string>
+    <string name="book_subtitle">المستوى الثاني · ٢٤ درسًا من القرآن</string>
     <string name="book_page_hint">صفحة</string>
-    <string name="book_open_page">افتح الصفحة · Ouvrir</string>
-    <string name="book_page_error">لا توجد آيات في هذه الصفحة · Pas de leçon du Coran à cette page</string>
-    <string name="book_page_n">ص %1$d</string>
-    <string name="lesson_hero">الكتاب ص %1$d · Livre p. %1$d</string>
-    <string name="lesson_subtitle">Livre p. %1$d · versets %2$d–%3$d</string>
+    <string name="book_open_page">افتح الصفحة</string>
+    <string name="book_page_error">لا توجد آيات في هذه الصفحة</string>
+    <string name="book_page_n">ص %1$s</string>
+    <string name="lesson_hero">الكتاب، صفحة %1$s</string>
+    <string name="lesson_subtitle">صفحة %1$s · الآيات %2$s–%3$s</string>
 
     <!-- Search / list -->
-    <string name="search_hint">ابحث: كلمة، سورة، 18:10 · Rechercher</string>
-    <string name="surahs_section">السور · Sourates</string>
-    <string name="verses_section">الآيات · Versets</string>
-    <string name="no_results">لا نتائج · Aucun résultat</string>
+    <string name="search_hint">ابحث عن كلمة أو سورة</string>
+    <string name="surahs_section">السور</string>
+    <string name="verses_section">الآيات</string>
+    <string name="no_results">لا نتائج</string>
     <string name="makki">مكية</string>
     <string name="madani">مدنية</string>
-    <string name="ayat_ar">%1$s آية</string>
-    <string name="ayat_fr">%1$d versets</string>
+    <string name="ayat">%1$s آية</string>
+
+    <!-- History / favourites -->
+    <string name="history_title">المحفوظات</string>
+    <string name="favorites_section">المفضلة</string>
+    <string name="recent_section">آخر ما استمعت إليه</string>
+    <string name="history_empty">لا شيء بعد. اضغط على القلب في المشغّل لحفظ آية.</string>
+    <string name="cd_history">المفضلة والسجل</string>
+    <string name="cd_favorite">أضف إلى المفضلة</string>
+    <string name="cd_unfavorite">أزل من المفضلة</string>
+    <string name="clear_recent">امسح السجل</string>
 
     <!-- Player -->
-    <string name="prev_ar">السابق</string>
-    <string name="prev_fr">Précédent</string>
-    <string name="next_ar">التالي</string>
-    <string name="next_fr">Suivant</string>
-    <string name="repeat_ar">تكرار مستمر</string>
-    <string name="repeat_fr">RÉPÉTER</string>
-    <string name="slow_label">بطيء • LENT (0.75x)</string>
-    <string name="normal_label">عادي • NORMAL</string>
-    <string name="audio_missing_ar">التلاوة غير متوفرة لهذه الآية</string>
-    <string name="audio_missing_fr">Audio indisponible pour ce verset</string>
-    <string name="audio_offline_ar">تعذّر تشغيل التلاوة</string>
-    <string name="audio_offline_fr">Vérifiez la connexion internet</string>
-    <string name="retry">أعد · Réessayer</string>
-    <string name="pick_reciter">اختر القارئ · Choisir le récitant</string>
+    <string name="prev">السابق</string>
+    <string name="next">التالي</string>
+    <string name="repeat">تكرار</string>
+    <string name="slow_label">بطيء</string>
+    <string name="normal_label">عادي</string>
+    <string name="audio_missing">التلاوة غير متوفرة لهذه الآية</string>
+    <string name="audio_offline">تعذّر تشغيل التلاوة، تحقق من الإنترنت</string>
+    <string name="retry">أعد</string>
+    <string name="pick_reciter">اختر القارئ</string>
     <string name="reciter_source">رواية ورش عن نافع · تلاوات mp3quran.net</string>
 
     <!-- Updates -->
-    <string name="update_available_ar">تحديث جديد متوفر</string>
-    <string name="update_available_fr">Nouvelle version %1$s disponible</string>
-    <string name="update_button">تحديث · Mettre à jour</string>
-    <string name="update_downloading">جارٍ التحميل · Téléchargement %1$d %%</string>
-    <string name="update_ready_ar">التحديث جاهز</string>
-    <string name="update_ready_fr">Prêt à installer</string>
-    <string name="update_install">تثبيت · Installer</string>
-    <string name="update_failed">فشل التحميل · Échec, réessayer</string>
-    <string name="update_checking">جارٍ البحث · Recherche de mise à jour…</string>
-    <string name="update_uptodate">التطبيق محدّث · Bayyinah est à jour ✓</string>
+    <string name="update_available">تحديث جديد متوفر · %1$s</string>
+    <string name="update_button">تحديث</string>
+    <string name="update_downloading">جارٍ التحميل %1$s٪</string>
+    <string name="update_ready">التحديث جاهز للتثبيت</string>
+    <string name="update_install">تثبيت</string>
+    <string name="update_failed">فشل التحميل، أعد المحاولة</string>
+    <string name="update_checking">جارٍ البحث عن تحديث…</string>
+    <string name="update_uptodate">التطبيق محدّث ✓</string>
 
     <!-- Accessibility -->
-    <string name="cd_play">Lecture</string>
-    <string name="cd_pause">Pause</string>
-    <string name="cd_repeat">Répéter</string>
-    <string name="cd_prev">Verset précédent</string>
-    <string name="cd_next">Verset suivant</string>
-    <string name="cd_close">Fermer</string>
-    <string name="cd_back">Retour</string>
+    <string name="cd_play">تشغيل</string>
+    <string name="cd_pause">إيقاف مؤقت</string>
+    <string name="cd_repeat">تكرار الآية</string>
+    <string name="cd_prev">الآية السابقة</string>
+    <string name="cd_next">الآية التالية</string>
+    <string name="cd_close">إغلاق</string>
+    <string name="cd_back">رجوع</string>
+    <string name="setup_error">تعذّر فتح المصحف. أعد تشغيل التطبيق.</string>
 </resources>

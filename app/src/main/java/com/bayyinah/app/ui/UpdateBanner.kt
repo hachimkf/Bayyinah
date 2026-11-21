@@ -60,17 +60,15 @@ fun UpdateBanner(state: UpdateUi, vm: MainViewModel, modifier: Modifier = Modifi
                             UpdateUi.Checking -> Text(stringResource(R.string.update_checking), fontWeight = FontWeight.Bold)
                             UpdateUi.UpToDate -> Text(stringResource(R.string.update_uptodate), fontWeight = FontWeight.Bold)
                             is UpdateUi.Available -> {
-                                Text(stringResource(R.string.update_available_ar), fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                                Text(stringResource(R.string.update_available_fr, s.info.version), fontSize = 13.sp, color = Cream.copy(alpha = 0.8f))
+                                Text(stringResource(R.string.update_available, s.info.version), fontWeight = FontWeight.Bold, fontSize = 17.sp)
                             }
                             is UpdateUi.Downloading -> {
-                                Text(stringResource(R.string.update_downloading, (s.progress * 100).toInt()), fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.update_downloading, (s.progress * 100).toInt().toArabicDigits()), fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(6.dp))
                                 LinearWavyProgressIndicator(progress = { s.progress }, color = Amber, trackColor = Cream.copy(alpha = 0.2f), modifier = Modifier.fillMaxWidth().height(10.dp))
                             }
                             is UpdateUi.Ready -> {
-                                Text(stringResource(R.string.update_ready_ar), fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                                Text(stringResource(R.string.update_ready_fr) + " · ${s.info.version}", fontSize = 13.sp, color = Cream.copy(alpha = 0.8f))
+                                Text(stringResource(R.string.update_ready), fontWeight = FontWeight.Bold, fontSize = 17.sp)
                             }
                             is UpdateUi.Failed -> Text(stringResource(R.string.update_failed), fontWeight = FontWeight.Bold)
                             UpdateUi.Hidden -> {}
@@ -90,7 +88,7 @@ fun UpdateBanner(state: UpdateUi, vm: MainViewModel, modifier: Modifier = Modifi
                 }
                 if (action != null) {
                     Spacer(Modifier.height(10.dp))
-                    Row(Modifier.fillMaxWidth().padding(end = 8.dp), horizontalArrangement = Arrangement.End) {
+                    Row(Modifier.fillMaxWidth().padding(end = 8.dp), horizontalArrangement = Arrangement.Center) {
                         ActionButton(action.first, action.second)
                     }
                 }

@@ -16,6 +16,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -46,30 +55,43 @@ fun BayyinahApp(vm: MainViewModel) {
     BackHandler(enabled = state.verse == null && state.screen != Screen.Home) { vm.backToHome() }
     BackHandler(enabled = state.verse == null && state.screen == Screen.Home && index.openSurah != null) { vm.back() }
 
+    // Arabic only: the whole app is laid out right-to-left.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+    val sheetOver = state.verse != null && state.screen != Screen.Reader
+    // Blur (Android 12+) and dim what's behind the player so the eye goes to the ayah.
+    val blur by animateDpAsState(if (sheetOver) 14.dp else 0.dp, label = "blur")
+    val dim by animateFloatAsState(if (sheetOver) 0.38f else 0f, label = "dim")
     Box(Modifier.fillMaxSize()) {
         androidx.compose.animation.AnimatedContent(
+            modifier = Modifier.blur(blur),
             targetState = state.screen,
             transitionSpec = { (fadeIn() + androidx.compose.animation.scaleIn(initialScale = 0.96f)) togetherWith fadeOut() },
             label = "screen",
         ) { screen ->
             when (screen) {
-                Screen.Home -> HomeScreen(vm, index, update, sheetOpen = state.verse != null, setupError = state.setupError)
+                Screen.Home -> HomeScreen(vm, index, update, setupError = state.setupError)
+                Screen.History -> HistoryScreen(vm, index)
                 // The camera is only bound while the scanner is shown (battery).
                 Screen.Scanner -> ScannerRoute(vm, state)
                 Screen.Settings -> SettingsScreen(vm, state, update)
                 // After a scan: full-screen player, camera closed.
-                Screen.Reader -> state.verse?.let { VerseSheet(vm = vm, state = state, verse = it, fullScreen = true) }
+                Screen.Reader -> state.verse?.let { v -> VerseSheet(vm = vm, state = state, verse = v, fullScreen = true, favorite = index.favorites.any { it.id == v.id }) }
                     ?: androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(com.bayyinah.app.ui.theme.Cream))
             }
         }
+        if (dim > 0f) Box(
+            Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = dim))
+                .pointerInput(Unit) { detectTapGestures { vm.dismissVerse() } },
+        )
         AnimatedVisibility(
-            visible = state.verse != null && state.screen != Screen.Reader,
+            visible = sheetOver,
             modifier = Modifier.align(Alignment.BottomCenter),
             enter = slideInVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) { it } + fadeIn(),
             exit = slideOutVertically(MaterialTheme.motionScheme.fastSpatialSpec()) { it } + fadeOut(),
         ) {
             val verse = state.verse
-            if (verse != null) VerseSheet(vm = vm, state = state, verse = verse)
+            if (verse != null) VerseSheet(vm = vm, state = state, verse = verse, favorite = index.favorites.any { it.id == verse.id })
         }
+    }
     }
 }

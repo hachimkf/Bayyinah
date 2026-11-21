@@ -209,15 +209,15 @@ private fun FramingOverlay(frame: RectF, scanning: Boolean) {
 @Composable
 private fun HintLabel(state: UiState) {
     val (ar, fr, color) = when (state.scanState) {
-        ScanState.Loading -> Triple(R.string.loading_ar, R.string.loading_fr, Cream)
-        ScanState.Scanning -> Triple(R.string.scanning_ar, R.string.scanning_fr, Cream)
-        ScanState.NoMatch -> Triple(R.string.no_match_ar, R.string.no_match_fr, Amber)
-        ScanState.Idle -> Triple(R.string.frame_hint_ar, R.string.frame_hint_fr, Cream)
+        ScanState.Loading -> Triple(R.string.loading, null, Cream)
+        ScanState.Scanning -> Triple(R.string.scanning, R.string.scanning_sub, Cream)
+        ScanState.NoMatch -> Triple(R.string.no_match, null, Amber)
+        ScanState.Idle -> Triple(R.string.frame_hint, null, Cream)
     }
     AnimatedContent(targetState = Triple(ar, fr, color), label = "hint") { (a, f, c) ->
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(stringResource(a), color = c, fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Text(stringResource(f), color = c.copy(alpha = 0.8f), fontSize = 15.sp, textAlign = TextAlign.Center)
+            if (f != null) Text(stringResource(f), color = c.copy(alpha = 0.8f), fontSize = 15.sp, textAlign = TextAlign.Center)
         }
     }
 }

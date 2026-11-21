@@ -90,7 +90,7 @@ import com.bayyinah.app.ui.theme.VerseTextStyle
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Boolean = false) {
+fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Boolean = false, favorite: Boolean = false) {
     val haptics = LocalHapticFeedback.current
     Surface(
         color = Cream,
@@ -118,17 +118,14 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Bool
                     modifier = Modifier.size(56.dp),
                     colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Parchment, contentColor = EmeraldDeep),
                 ) { Icon(AppIcons.Close, stringResource(R.string.cd_close), modifier = Modifier.size(28.dp)) }
-                Spacer(Modifier.width(12.dp))
-                Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f)) {
-                    Text("سورة ${verse.surahName}", style = MaterialTheme.typography.titleLarge, color = EmeraldDeep)
-                    Text(
-                        "${verse.surah}:${verse.ayah}",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                    Text("سورة ${verse.surahName}", style = MaterialTheme.typography.titleLarge, color = EmeraldDeep, maxLines = 1)
+                    Text("الآية ${verse.ayah.toArabicDigits()}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Spacer(Modifier.width(12.dp))
-                AyahBadge(verse.ayah, size = 60)
+                HeartButton(favorite) {
+                    haptics.performHapticFeedback(if (favorite) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                    vm.toggleFavorite(verse)
+                }
             }
             Spacer(Modifier.height(8.dp))
             ReciterChip(state, onPick = vm::selectReciter)
@@ -159,8 +156,8 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Bool
             Spacer(Modifier.height(14.dp))
 
             when {
-                !state.audioAvailable -> Notice(stringResource(R.string.audio_missing_ar), stringResource(R.string.audio_missing_fr))
-                state.audioError -> Notice(stringResource(R.string.audio_offline_ar), stringResource(R.string.audio_offline_fr), action = stringResource(R.string.retry), onAction = vm::retryAudio)
+                !state.audioAvailable -> Notice(stringResource(R.string.audio_missing))
+                state.audioError -> Notice(stringResource(R.string.audio_offline), action = stringResource(R.string.retry), onAction = vm::retryAudio)
                 else -> LinearWavyProgressIndicator(
                     progress = { state.progress },
                     color = Emerald,
@@ -177,8 +174,8 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Bool
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 StepButton(
-                    AppIcons.ChevronLeft, state.hasPrevious,
-                    stringResource(R.string.prev_ar), stringResource(R.string.prev_fr), stringResource(R.string.cd_prev),
+                    AppIcons.ChevronRight, state.hasPrevious,
+                    stringResource(R.string.prev), stringResource(R.string.cd_prev),
                 ) { haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); vm.previous() }
 
                 PlayButton(state.isPlaying, state.buffering, state.audioAvailable) {
@@ -191,8 +188,8 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Bool
                 }
 
                 StepButton(
-                    AppIcons.ChevronRight, state.hasNext,
-                    stringResource(R.string.next_ar), stringResource(R.string.next_fr), stringResource(R.string.cd_next),
+                    AppIcons.ChevronLeft, state.hasNext,
+                    stringResource(R.string.next), stringResource(R.string.cd_next),
                 ) { haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); vm.next() }
             }
             Spacer(Modifier.height(14.dp))
@@ -219,13 +216,10 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Bool
 
 /** Amber notice with an optional action (e.g. retry). */
 @Composable
-private fun Notice(ar: String, fr: String, action: String? = null, onAction: () -> Unit = {}) {
+private fun Notice(text: String, action: String? = null, onAction: () -> Unit = {}) {
     Surface(color = AmberSoft, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(ar, fontWeight = FontWeight.Bold, color = AmberDeep)
-                Text(fr, fontSize = 13.sp, color = AmberDeep)
-            }
+            Text(text, fontWeight = FontWeight.Bold, color = AmberDeep, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
             if (action != null) {
                 Spacer(Modifier.width(10.dp))
                 androidx.compose.material3.Button(
@@ -245,16 +239,11 @@ private fun ReciterChip(state: UiState, onPick: (com.bayyinah.app.data.Reciter) 
     val r = state.reciter ?: return
     var open by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     Surface(onClick = { open = true }, color = Mint, shape = CircleShape, modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Icon(AppIcons.Listen, null, tint = Emerald, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(10.dp))
-            // Stacked names: long names (e.g. Mahmoud Khalil Al-Husary) never collide.
-            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                Text(r.nameAr, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = EmeraldDeep, maxLines = 1)
-                Text(r.nameEn, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            }
-            Spacer(Modifier.width(6.dp))
+            Text(r.nameAr, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = EmeraldDeep, maxLines = 1)
+            Spacer(Modifier.width(8.dp))
             Icon(AppIcons.ChevronDown, null, tint = Emerald, modifier = Modifier.size(22.dp))
         }
     }
@@ -262,18 +251,14 @@ private fun ReciterChip(state: UiState, onPick: (com.bayyinah.app.data.Reciter) 
         androidx.compose.material3.ModalBottomSheet(onDismissRequest = { open = false }, containerColor = Cream) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.pick_reciter), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = EmeraldDeep,
-                    modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End)
+                    modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
                 Text(stringResource(R.string.reciter_source), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End)
+                    modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
                 state.reciters.forEach { rc ->
                     val sel = rc.id == r.id
                     Surface(onClick = { onPick(rc); open = false }, color = if (sel) EmeraldDeep else Mint, contentColor = if (sel) Cream else EmeraldDeep,
                         shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().height(68.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 18.dp)) {
-                            Text(rc.nameEn, fontSize = 14.sp)
-                            Spacer(Modifier.weight(1f))
-                            Text(rc.nameAr, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        }
+                        Box(contentAlignment = Alignment.Center) { Text(rc.nameAr, fontWeight = FontWeight.Bold, fontSize = 19.sp) }
                     }
                 }
             }
@@ -347,10 +332,9 @@ private fun RepeatButton(active: Boolean, onClick: () -> Unit) {
     val source = remember { MutableInteractionSource() }
     val morph = remember { Morph(MaterialShapes.Cookie4Sided, MaterialShapes.Sunny) }
     val progress by animateFloatAsState(if (active) 1f else 0f, MaterialTheme.motionScheme.defaultSpatialSpec(), label = "rMorph")
-    val turn by animateFloatAsState(if (active) 180f else 0f, MaterialTheme.motionScheme.slowSpatialSpec(), label = "rTurn")
     val container by animateColorAsState(if (active) Amber else Parchment, label = "rBg")
     val content by animateColorAsState(if (active) Color.White else AmberDeep, label = "rFg")
-    val shape = MorphShape(morph, progress, rotation = turn / 4f)
+    val shape = MorphShape(morph, progress)
     val desc = stringResource(R.string.cd_repeat)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
@@ -363,19 +347,33 @@ private fun RepeatButton(active: Boolean, onClick: () -> Unit) {
                 .clickable(interactionSource = source, indication = androidx.compose.material3.ripple(), onClick = onClick)
                 .semantics { contentDescription = desc; role = Role.Switch; stateDescription = if (active) "ON" else "OFF" },
         ) {
-            Icon(AppIcons.Repeat, null, tint = content, modifier = Modifier.size(36.dp).graphicsRotate(turn))
+            Icon(AppIcons.Repeat, null, tint = content, modifier = Modifier.size(40.dp))
         }
         Spacer(Modifier.height(6.dp))
-        Text(stringResource(R.string.repeat_ar), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (active) AmberDeep else MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(stringResource(R.string.repeat_fr), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AmberDeep)
+        Text(stringResource(R.string.repeat), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (active) AmberDeep else MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
-private fun Modifier.graphicsRotate(deg: Float) = this.then(Modifier.rotate(deg))
+/** Heart: adds/removes this ayah from her favourites (shown in «المحفوظات»). */
+@Composable
+private fun HeartButton(on: Boolean, onClick: () -> Unit) {
+    val source = remember { MutableInteractionSource() }
+    val bg by animateColorAsState(if (on) AmberSoft else Parchment, label = "heartBg")
+    Surface(onClick = onClick, shape = CircleShape, color = bg, interactionSource = source,
+        modifier = Modifier.size(56.dp).scale(pressScale(source))) {
+        Box(contentAlignment = Alignment.Center) {
+            AnimatedContent(targetState = on, transitionSpec = { scaleIn() + fadeIn() togetherWith scaleOut() + fadeOut() }, label = "heart") { f ->
+                Icon(if (f) AppIcons.Heart else AppIcons.HeartOutline,
+                    stringResource(if (f) R.string.cd_unfavorite else R.string.cd_favorite),
+                    tint = if (f) AmberDeep else EmeraldDeep, modifier = Modifier.size(28.dp))
+            }
+        }
+    }
+}
 
 @Composable
 private fun StepButton(
-    icon: ImageVector, enabled: Boolean, labelAr: String, labelFr: String, description: String, onClick: () -> Unit,
+    icon: ImageVector, enabled: Boolean, label: String, description: String, onClick: () -> Unit,
 ) {
     val source = remember { MutableInteractionSource() }
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.alpha(if (enabled) 1f else 0.35f)) {
@@ -391,8 +389,7 @@ private fun StepButton(
             Box(contentAlignment = Alignment.Center) { Icon(icon, description, modifier = Modifier.size(36.dp)) }
         }
         Spacer(Modifier.height(6.dp))
-        Text(labelAr, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-        Text(labelFr, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -412,7 +409,7 @@ private fun SpeedSelector(slow: Boolean, onChange: (Boolean) -> Unit) {
             checked = slow, onCheckedChange = { onChange(true) },
             shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(), colors = colors,
             modifier = Modifier.weight(1f).height(58.dp).semantics { role = Role.RadioButton },
-        ) { Text(stringResource(R.string.slow_label), fontWeight = FontWeight.Bold, fontSize = 14.sp) }
+        ) { Text(stringResource(R.string.slow_label), fontWeight = FontWeight.Bold, fontSize = 16.sp) }
         ToggleButton(
             checked = !slow, onCheckedChange = { onChange(false) },
             shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(), colors = colors,

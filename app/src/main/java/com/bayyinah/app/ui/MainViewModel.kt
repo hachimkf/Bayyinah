@@ -50,7 +50,7 @@ sealed interface UpdateUi {
     data class Failed(val info: UpdateInfo) : UpdateUi
 }
 
-enum class Screen { Home, Scanner, Reader, Settings }
+enum class Screen { Home, Scanner, Reader, Settings, History }
 enum class ScanState { Loading, Idle, Scanning, NoMatch }
 
 /** Player sheet state (+ which screen is shown). */
@@ -92,8 +92,12 @@ data class IndexState(
     val jumpSurah: Surah? = null,
     val jumpAyah: String = "",
     val jumpError: Boolean = false,
-    /** Last verse opened, offered as "continue" on the home screen. */
+    /** Last verse opened (the quick jump starts on its surah). */
     val lastVerse: Verse? = null,
+    /** Heart-marked ayat, newest first. */
+    val favorites: List<Verse> = emptyList(),
+    /** Recently played ayat, newest first. */
+    val recent: List<Verse> = emptyList(),
     /** Her book «أقرأ وأتعلم – المستوى الثاني»: its 24 Quran lessons. */
     val lessons: List<BookLesson> = emptyList(),
     /** Set when a book lesson is open: only its ayat are listed. */
@@ -142,7 +146,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
                 val surahs = repository.surahs()
                 val last = prefs.getInt(KEY_LAST_VERSE, 0).takeIf { it > 0 }?.let { repository.byId(it) }
                 val jumpSurah = surahs.firstOrNull { it.number == (last?.surah ?: 1) } ?: surahs.firstOrNull()
-                _index.update { it.copy(surahs = surahs, jumpSurah = jumpSurah, lastVerse = last) }
+                val favorites = loadIds(KEY_FAVORITES).mapNotNull { repository.byId(it) }
+                val recent = loadIds(KEY_RECENT).mapNotNull { repository.byId(it) }
+                _index.update { it.copy(surahs = surahs, jumpSurah = jumpSurah, lastVerse = last, favorites = favorites, recent = recent) }
             } catch (e: Exception) {
                 android.util.Log.e("Bayyinah", "Setup failed", e)
                 _state.update { it.copy(setupError = e.message ?: e.javaClass.simpleName) }
@@ -174,6 +180,28 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
     }
 
     fun openSettings() = _state.update { it.copy(screen = Screen.Settings) }
+
+    /** Favourites (heart) and recently played ayat. */
+    fun openHistory() = _state.update { it.copy(screen = Screen.History) }
+
+    fun toggleFavorite(verse: Verse) {
+        _index.update { st ->
+            val favs = if (st.favorites.any { it.id == verse.id }) st.favorites.filter { it.id != verse.id }
+            else listOf(verse) + st.favorites
+            saveIds(KEY_FAVORITES, favs.map { it.id })
+            st.copy(favorites = favs)
+        }
+    }
+
+    fun clearRecent() {
+        saveIds(KEY_RECENT, emptyList())
+        _index.update { it.copy(recent = emptyList()) }
+    }
+
+    private fun loadIds(key: String): List<Int> =
+        prefs.getString(key, "").orEmpty().split(',').mapNotNull { it.toIntOrNull() }
+
+    private fun saveIds(key: String, ids: List<Int>) = prefs.edit().putString(key, ids.joinToString(",")).apply()
 
     /** Back to home from scanner/settings; returns false when already home. */
     fun backToHome(): Boolean {
@@ -485,7 +513,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
                 isPlaying = false, hasPrevious = hasPrev, hasNext = hasNext,
             )
         }
-        _index.update { it.copy(lastVerse = verse) }
+        _index.update { st ->
+            val recent = (listOf(verse) + st.recent.filter { it.id != verse.id }).take(MAX_RECENT)
+            saveIds(KEY_RECENT, recent.map { it.id })
+            st.copy(lastVerse = verse, recent = recent)
+        }
     }
 
     fun togglePlay() = player.togglePlay()
@@ -560,6 +592,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         const val KEY_LAST_VERSE = "last_verse"
         const val KEY_RECITER = "reciter"
         const val KEY_AUTO_UPDATE = "auto_update"
+        const val KEY_FAVORITES = "favorites"
+        const val KEY_RECENT = "recent"
+        const val MAX_RECENT = 30
         const val SCAN_INTERVAL_MS = 450L
         /** OCR fallback on every 4th frame only (book matching runs on every frame). */
         const val OCR_EVERY = 4
