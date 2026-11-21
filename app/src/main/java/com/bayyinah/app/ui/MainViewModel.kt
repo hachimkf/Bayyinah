@@ -5,6 +5,9 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bayyinah.app.audio.RecitationPlayer
+import com.bayyinah.app.book.BookLesson
+import com.bayyinah.app.book.BookMatcher
+import com.bayyinah.app.book.BookRefs
 import com.bayyinah.app.data.Reciter
 import com.bayyinah.app.data.Surah
 import com.bayyinah.app.data.Verse
@@ -91,6 +94,11 @@ data class IndexState(
     val jumpError: Boolean = false,
     /** Last verse opened, offered as "continue" on the home screen. */
     val lastVerse: Verse? = null,
+    /** Her book «أقرأ وأتعلم – المستوى الثاني»: its 24 Quran lessons. */
+    val lessons: List<BookLesson> = emptyList(),
+    /** Set when a book lesson is open: only its ayat are listed. */
+    val openLesson: BookLesson? = null,
+    val pageError: Boolean = false,
 )
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -121,6 +129,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
     private var recognizer: ArabicTextRecognizer? = null
     private var matcher: VerseMatcher? = null
     private var scanSetupJob: Job? = null
+    private var book: BookRefs? = null
+    private var bookMatcher: BookMatcher? = null
     private var scanJob: Job? = null
 
     init {
@@ -136,6 +146,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
             } catch (e: Exception) {
                 android.util.Log.e("Bayyinah", "Setup failed", e)
                 _state.update { it.copy(setupError = e.message ?: e.javaClass.simpleName) }
+            }
+        }
+        viewModelScope.launch {
+            try {
+                val refs = withContext(Dispatchers.IO) { getApplication<Application>().assets.open("book_refs.bin").use { BookRefs.read(it) } }
+                book = refs; bookMatcher = BookMatcher(refs)
+                _index.update { it.copy(lessons = refs.lessons) }
+            } catch (e: Exception) {
+                android.util.Log.e("Bayyinah", "Book references not loaded", e)
             }
         }
         viewModelScope.launch { queryFlow.debounce(250).collect { runSearch(it) } }
@@ -209,8 +228,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         }
     }
 
-    /** OCR the crop at each calibrated text size; stop early on a decisive pass. */
+    /**
+     * 1) Her book: compare the crop's printed lines with the book's own lines (fast, no OCR).
+     * 2) Otherwise OCR the crop at each calibrated text size; stop early on a decisive pass.
+     */
     private fun recognizeFrame(frame: Bitmap): Int? {
+        bookMatcher?.let { bm ->
+            val w = frame.width; val h = frame.height
+            val px = IntArray(w * h); frame.getPixels(px, 0, w, 0, 0, w, h)
+            val lum = IntArray(w * h) { px[it] and 0xFF } // frame is already grayscale
+            val t0 = System.currentTimeMillis()
+            val r = bm.match(lum, w, h)
+            if (com.bayyinah.app.BuildConfig.DEBUG) android.util.Log.d("BayyinahOcr", "book: $r in ${System.currentTimeMillis() - t0} ms")
+            if (r != null && r.accepted) { frame.recycle(); return r.verseId }
+        }
         val ocr = recognizer ?: return null
         val m = matcher ?: return null
         val near = _state.value.verse?.id
@@ -277,10 +308,33 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         viewModelScope.launch { repository.byRef(s.number, ayah)?.let { showVerse(it, autoplay = true) } }
     }
 
+    // ---------------------------------------------------------------- her book
+
+    /** Opens a lesson: the surah page filtered to the lesson's ayat. */
+    fun openLesson(lesson: BookLesson) {
+        val surah = _index.value.surahs.firstOrNull { it.number == lesson.surah } ?: return
+        _index.update { it.copy(openSurah = surah, openLesson = lesson, surahVerses = emptyList(), jumpSurah = surah, pageError = false) }
+        viewModelScope.launch {
+            val verses = repository.versesOf(surah.number).filter { it.ayah in lesson.firstAyah..lesson.lastAyah }
+            _index.update { if (it.openLesson == lesson) it.copy(surahVerses = verses) else it }
+        }
+    }
+
+    /** Book page number → the lesson printed on (or just before) that page. */
+    fun goToBookPage(text: String) {
+        val page = toLatinDigits(text).filter { it.isDigit() }.toIntOrNull()
+        val lessons = _index.value.lessons
+        val lesson = page?.let { p -> lessons.lastOrNull { it.page <= p }?.takeIf { p - it.page <= 3 } }
+        if (lesson == null) { _index.update { it.copy(pageError = true) }; return }
+        openLesson(lesson)
+    }
+
+    fun clearPageError() = _index.update { it.copy(pageError = false) }
+
     // ---------------------------------------------------------------- index & search
 
     fun openSurah(surah: Surah) {
-        _index.update { it.copy(openSurah = surah, surahVerses = emptyList(), jumpSurah = surah) }
+        _index.update { it.copy(openSurah = surah, openLesson = null, surahVerses = emptyList(), jumpSurah = surah) }
         viewModelScope.launch {
             val verses = repository.versesOf(surah.number)
             _index.update { if (it.openSurah?.number == surah.number) it.copy(surahVerses = verses) else it }
@@ -290,7 +344,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
     /** Back: surah detail → home. Returns false when already on the home list. */
     fun back(): Boolean {
         if (_index.value.openSurah == null) return false
-        _index.update { it.copy(openSurah = null, surahVerses = emptyList()) }
+        _index.update { it.copy(openSurah = null, openLesson = null, surahVerses = emptyList()) }
         return true
     }
 

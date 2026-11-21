@@ -103,7 +103,7 @@ fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, sheetOpen
     val bottomPad = if (sheetOpen) 440.dp else 32.dp // keep the last items above the player sheet
 
     Column(Modifier.fillMaxSize().background(Cream).statusBarsPadding()) {
-        TopBar(index.openSurah, onBack = { keyboard?.hide(); vm.back() }, onLogo = { vm.checkForUpdates(force = true) }, onSettings = { keyboard?.hide(); vm.openSettings() })
+        TopBar(index.openSurah, index.openLesson, onBack = { keyboard?.hide(); vm.back() }, onLogo = { vm.checkForUpdates(force = true) }, onSettings = { keyboard?.hide(); vm.openSettings() })
 
         val mode = when {
             index.openSurah != null -> 2
@@ -137,6 +137,7 @@ fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, sheetOpen
                     index.lastVerse?.let { last ->
                         item(key = "continue") { ContinueChip(last) { vm.selectVerse(last) } }
                     }
+                    if (index.lessons.isNotEmpty()) item(key = "book") { MyBookCard(index, vm, onDone = { keyboard?.hide() }) }
                     item(key = "search") {
                         SearchField(index.query, index.clearSignal, vm::setQuery, onSearch = { keyboard?.hide() }, modifier = Modifier.padding(top = 4.dp))
                     }
@@ -156,7 +157,7 @@ fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, sheetOpen
 }
 
 @Composable
-private fun TopBar(open: Surah?, onBack: () -> Unit, onLogo: () -> Unit, onSettings: () -> Unit) {
+private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBack: () -> Unit, onLogo: () -> Unit, onSettings: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         if (open != null) {
             FilledTonalIconButton(
@@ -166,7 +167,8 @@ private fun TopBar(open: Surah?, onBack: () -> Unit, onLogo: () -> Unit, onSetti
             Spacer(Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.End) {
                 Text("سورة ${open.nameAr}", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = EmeraldDeep)
-                Text("${open.number}. ${open.nameEn}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(lesson?.let { stringResource(R.string.lesson_subtitle, it.page, it.firstAyah, it.lastAyah) } ?: "${open.number}. ${open.nameEn}",
+                    style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             // Tapping the logo checks GitHub for a new version.
@@ -192,9 +194,10 @@ private fun TopBar(open: Surah?, onBack: () -> Unit, onLogo: () -> Unit, onSetti
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LogoMark() {
-    Box(Modifier.size(48.dp).clip(MaterialShapes.Cookie9Sided.toShape()).background(Emerald), contentAlignment = Alignment.Center) {
-        Icon(AppIcons.Book, null, tint = Amber, modifier = Modifier.size(24.dp))
-    }
+    androidx.compose.foundation.Image(
+        painter = androidx.compose.ui.res.painterResource(R.drawable.app_logo), contentDescription = null,
+        modifier = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)),
+    )
 }
 
 /** Dark emerald hero: choose a surah, type the ayah number, read. */
@@ -445,11 +448,12 @@ private fun SurahDetail(vm: MainViewModel, index: IndexState, bottomPad: Dp) {
     val keyboard = LocalSoftwareKeyboardController.current
     val goTo: () -> Unit = {
         val n = index.jumpAyah.toIntOrNull()
-        if (n != null && n in 1..s.ayahCount) {
+        val pos = index.surahVerses.indexOfFirst { it.ayah == n }
+        if (n != null && pos >= 0) {
             keyboard?.hide()
-            scope.launch { listState.animateScrollToItem(n + HEADER_ITEMS - 1) }
-            index.surahVerses.getOrNull(n - 1)?.let(vm::selectVerse)
-        } else vm.goToJump() // shows the range error
+            scope.launch { listState.animateScrollToItem(pos + HEADER_ITEMS) }
+            vm.selectVerse(index.surahVerses[pos])
+        } else if (index.openLesson == null) vm.goToJump() // shows the range error
     }
     LazyColumn(
         state = listState,
@@ -461,8 +465,12 @@ private fun SurahDetail(vm: MainViewModel, index: IndexState, bottomPad: Dp) {
             Surface(color = EmeraldDeep, contentColor = Cream, shape = RoundedCornerShape(32.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(20.dp)) {
                     Text("سورة ${s.nameAr}", fontSize = 30.sp, fontWeight = FontWeight.Bold)
+                    index.openLesson?.let { l ->
+                        Spacer(Modifier.height(4.dp))
+                        Text(stringResource(R.string.lesson_hero, l.page), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Amber)
+                    }
                     Spacer(Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (index.openLesson == null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Pill(stringResource(if (s.makki) R.string.makki else R.string.madani))
                         Pill(stringResource(R.string.ayat_ar, s.ayahCount.toArabicDigits()))
                         Pill(stringResource(R.string.ayat_fr, s.ayahCount))
@@ -488,6 +496,71 @@ private fun SurahDetail(vm: MainViewModel, index: IndexState, bottomPad: Dp) {
 }
 
 private const val HEADER_ITEMS = 1 // the hero card before the first ayah
+
+/** «كتابي»: her book — type a page number, or tap one of its 24 Quran lessons. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun MyBookCard(index: IndexState, vm: MainViewModel, onDone: () -> Unit) {
+    val surahs = index.surahs.associateBy { it.number }
+    val page = rememberTextFieldState()
+    LaunchedEffect(page) { snapshotFlow { page.text.toString() }.collect { vm.clearPageError() } }
+    Surface(color = Sand, shape = RoundedCornerShape(32.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp)) {
+                Box(Modifier.size(44.dp).clip(MaterialShapes.Cookie6Sided.toShape()).background(Emerald), contentAlignment = Alignment.Center) {
+                    Icon(AppIcons.Book, null, tint = Amber, modifier = Modifier.size(22.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                    Text(stringResource(R.string.book_title_ar), fontWeight = FontWeight.Bold, fontSize = 19.sp, color = EmeraldDeep)
+                    Text(stringResource(R.string.book_title_fr), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            // Page number → lesson
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(horizontal = 16.dp)) {
+                Surface(color = Cream, shape = RoundedCornerShape(22.dp),
+                    border = if (index.pageError) androidx.compose.foundation.BorderStroke(3.dp, Amber) else null,
+                    modifier = Modifier.width(120.dp).height(64.dp)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 10.dp)) {
+                        if (page.text.isEmpty()) Text(stringResource(R.string.book_page_hint), fontSize = 15.sp, color = Ink.copy(alpha = 0.35f))
+                        BasicTextField(
+                            state = page, lineLimits = TextFieldLineLimits.SingleLine,
+                            textStyle = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold, color = EmeraldDeep, textAlign = TextAlign.Center),
+                            cursorBrush = SolidColor(Emerald),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Go),
+                            onKeyboardAction = { onDone(); vm.goToBookPage(page.text.toString()) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+                Button(
+                    onClick = { onDone(); vm.goToBookPage(page.text.toString()) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Emerald, contentColor = Cream),
+                    shape = CircleShape, modifier = Modifier.weight(1f).height(64.dp),
+                ) { Text(stringResource(R.string.book_open_page), fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1) }
+            }
+            if (index.pageError) Text(stringResource(R.string.book_page_error), color = AmberDeep, fontWeight = FontWeight.Bold, fontSize = 13.sp,
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp))
+            Spacer(Modifier.height(12.dp))
+            // The 24 lessons, in book order
+            androidx.compose.foundation.lazy.LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(index.lessons, key = { it.page }) { l ->
+                    Surface(onClick = { onDone(); vm.openLesson(l) }, color = Cream, shape = RoundedCornerShape(22.dp), modifier = Modifier.width(118.dp)) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp)) {
+                            Text(stringResource(R.string.book_page_n, l.page), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Emerald)
+                            Text(surahs[l.surah]?.nameAr ?: "", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = EmeraldDeep, maxLines = 1)
+                            Text(if (l.firstAyah == l.lastAyah) "${l.firstAyah}" else "${l.firstAyah}–${l.lastAyah}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun Pill(text: String) {

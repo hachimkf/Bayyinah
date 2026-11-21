@@ -51,6 +51,16 @@
     <string name="settings_about_text">Texte : Mushaf Warsh du Complexe du Roi Fahd (KFGQPC) via quran-ws/quran-text (CC BY 4.0). Récitations : mp3quran.net, diffusées en ligne, © leurs récitants. Lecture du verset : Tesseract OCR, sur l’appareil.</string>
     <string name="settings_source">الشيفرة المصدرية · Code source sur GitHub</string>
 
+    <!-- Her book -->
+    <string name="book_title_ar">كتابي: أقرأ وأتعلم</string>
+    <string name="book_title_fr">Mon livre · Niveau 2 · 24 leçons du Coran</string>
+    <string name="book_page_hint">صفحة</string>
+    <string name="book_open_page">افتح الصفحة · Ouvrir</string>
+    <string name="book_page_error">لا توجد آيات في هذه الصفحة · Pas de leçon du Coran à cette page</string>
+    <string name="book_page_n">ص %1$d</string>
+    <string name="lesson_hero">الكتاب ص %1$d · Livre p. %1$d</string>
+    <string name="lesson_subtitle">Livre p. %1$d · versets %2$d–%3$d</string>
+
     <!-- Search / list -->
     <string name="search_hint">ابحث: كلمة، سورة، 18:10 · Rechercher</string>
     <string name="surahs_section">السور · Sourates</string>

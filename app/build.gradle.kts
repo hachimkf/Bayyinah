@@ -114,4 +114,5 @@ dependencies {
     implementation(libs.tesseract4android)
 
     testImplementation(libs.junit)
+    testImplementation("org.json:json:20250517") // real org.json for JVM tests (android.jar only has stubs)
 }
