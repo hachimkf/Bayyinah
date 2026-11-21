@@ -29,27 +29,37 @@ class DatabaseHelper(private val context: Context) {
     fun open(): SQLiteDatabase {
         val dbFile = context.getDatabasePath(DB_NAME)
         val prefs = context.getSharedPreferences("db", Context.MODE_PRIVATE)
-        if (!dbFile.exists() || prefs.getInt(KEY_VERSION, -1) != ASSET_DB_VERSION) {
+        if (!dbFile.exists() || dbFile.length() == 0L || prefs.getInt(KEY_VERSION, -1) != ASSET_DB_VERSION) {
             copyFromAssets(dbFile)
-            prefs.edit().putInt(KEY_VERSION, ASSET_DB_VERSION).apply()
+            prefs.edit().putInt(KEY_VERSION, ASSET_DB_VERSION).commit()
         }
-        return SQLiteDatabase.openDatabase(
-            dbFile.path,
-            null,
-            SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
-        )
+        // Self-heal: a copy cut short (power loss, process killed) leaves an empty/corrupt file.
+        return openValid(dbFile) ?: run {
+            android.util.Log.w("Bayyinah", "Database invalid, copying again")
+            copyFromAssets(dbFile)
+            openValid(dbFile) ?: error("Database could not be opened")
+        }
+    }
+
+    private fun openValid(file: File): SQLiteDatabase? = try {
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
+            .also { db -> db.rawQuery("SELECT count(*) FROM verses", null).use { c -> check(c.moveToFirst() && c.getInt(0) > 0) } }
+    } catch (e: Exception) {
+        null
     }
 
     private fun copyFromAssets(target: File) {
         target.parentFile?.mkdirs()
         val tmp = File(target.parentFile, "$DB_NAME.tmp")
         context.assets.open(DB_NAME).use { input ->
-            tmp.outputStream().use { output -> input.copyTo(output, 64 * 1024) }
+            java.io.FileOutputStream(tmp).use { output ->
+                input.copyTo(output, 64 * 1024)
+                output.fd.sync() // data must be on disk before the rename makes it "the" database
+            }
         }
-        if (!tmp.renameTo(target)) {
-            target.delete()
-            tmp.renameTo(target)
-        }
+        target.delete()
+        File(target.path + "-journal").delete()
+        check(tmp.renameTo(target)) { "rename failed" }
     }
 
     companion object {

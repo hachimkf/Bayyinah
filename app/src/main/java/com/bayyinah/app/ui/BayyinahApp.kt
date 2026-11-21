@@ -42,7 +42,7 @@ fun BayyinahApp(vm: MainViewModel) {
     BackHandler(enabled = state.verse == null && index.openSurah != null) { vm.back() }
 
     Box(Modifier.fillMaxSize()) {
-        HomeScreen(vm, index, update, sheetOpen = state.verse != null)
+        HomeScreen(vm, index, update, sheetOpen = state.verse != null, setupError = state.setupError)
         AnimatedVisibility(
             visible = state.verse != null,
             modifier = Modifier.align(Alignment.BottomCenter),

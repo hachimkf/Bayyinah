@@ -97,7 +97,7 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, sheetOpen: Boolean) {
+fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, sheetOpen: Boolean, setupError: String?) {
     val keyboard = LocalSoftwareKeyboardController.current
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
     val bottomPad = if (sheetOpen) 440.dp else 32.dp // keep the last items above the player sheet
@@ -125,6 +125,12 @@ fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, sheetOpen
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     item(key = "update") { UpdateBanner(update, vm) }
+                    if (setupError != null) item(key = "error") {
+                        Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+                            Text("تعذّر فتح المصحف · Impossible d'ouvrir le texte du Coran. Redémarrez l'application.\n$setupError",
+                                color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(16.dp))
+                        }
+                    }
                     item(key = "jump") {
                         QuickJumpCard(index, vm, onPickSurah = { keyboard?.hide(); pickerOpen = true }, onGo = { keyboard?.hide(); vm.goToJump() })
                     }
