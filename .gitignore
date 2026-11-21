@@ -11,3 +11,6 @@ local.properties
 keystore/
 keystore.properties
 *.jks
+
+# Official book PDFs (Ministry of Habous) — reference material, not redistributed.
+book-source/
