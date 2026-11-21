@@ -40,7 +40,7 @@ import com.bayyinah.app.ui.theme.EmeraldDeep
 /** «المحفوظات»: heart-marked ayat, then the ones she listened to recently. */
 @Composable
 fun HistoryScreen(vm: MainViewModel, index: IndexState) {
-    val topPad = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 100.dp
+    val topPad = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 76.dp + FadeTail
     Box(Modifier.fillMaxSize().background(Cream)) {
         LazyColumn(
             contentPadding = PaddingValues(start = SidePad, end = SidePad, top = topPad, bottom = 40.dp),
@@ -73,8 +73,8 @@ fun HistoryScreen(vm: MainViewModel, index: IndexState) {
             }
         }
         // Same soft fade as the home bar.
-        Box(Modifier.fillMaxWidth().background(TopFade).statusBarsPadding().height(100.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(84.dp).padding(horizontal = SidePad)) {
+        Box(Modifier.fillMaxWidth().background(TopFade).statusBarsPadding().height(76.dp + FadeTail)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(76.dp).padding(horizontal = SidePad)) {
                 RoundIconButton(AppIcons.Back, stringResource(R.string.cd_back), { vm.backToHome() })
                 Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Icon(AppIcons.Heart, null, tint = Amber, modifier = Modifier.size(24.dp))

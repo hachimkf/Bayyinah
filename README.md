@@ -8,7 +8,7 @@ APK ≈ **7.5 MB** (scanner OCR included). Text, search and navigation work offl
 
 ## Using it
 
-- The interface is **Arabic only** and laid out right-to-left.
+- The interface is **Arabic only**, laid out right-to-left, with Latin digits (1, 2, 3) as used in Morocco.
 - **اذهب إلى آية** (quick jump, top card):
   1. Tap the surah field and pick from the list (filter by number `67` or name `ملك` / `mulk`).
   2. Type the ayah number on the number pad.
@@ -18,11 +18,8 @@ APK ≈ **7.5 MB** (scanner OCR included). Text, search and navigation work offl
   **full-screen player**. «امسح آية أخرى» or Back returns to the camera. On-device OCR (Tesseract) identifies the ayah among all 6,214 and opens it in the player. The camera
   permission is only asked the first time. Measured: 118/120 degraded test verses, 8/11 crops of a
   Maghribi-script page, 0 false matches on non-Quran text (`OcrRegressionTest`).
-- **كتابي:** her book «أقرأ وأتعلم – المستوى الثاني», published by the Ministry of Habous. It
-  lists the 24 Quran lessons in book order (page number, surah, ayat). She can also type a **page number**
-  (e.g. 93), and the app opens the lesson printed on that page and lists only its ayat.
 - **⚙ الإعدادات:** app version, **Vérifier** (check for updates now), automatic update check on/off,
-  reciter, and sources.
+  and reciter.
 - **♥ المحفوظات** (heart beside the logo): ayat she marked with the heart in the player, and the last 30 she listened to.
 - **السور** list is folded by default; tap it to show the 114 surahs.
 - **Search** finds words without tashkeel (`رب العلمين`), surah names (`الكهف`, `kahf`), or references

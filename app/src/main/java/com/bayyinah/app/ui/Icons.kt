@@ -40,5 +40,5 @@ object AppIcons {
             .build()
 }
 
-/** Western → Arabic-Indic digits for the ayah badge (١١٤). */
-fun Int.toArabicDigits(): String = toString().map { '٠' + (it - '0') }.joinToString("")
+/** Numbers are shown in Latin digits (as used in Morocco): 114, not ١١٤. */
+fun Int.toArabicDigits(): String = toString()

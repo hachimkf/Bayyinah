@@ -110,18 +110,6 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
                 }
             }
 
-            // About
-            Section(stringResource(R.string.settings_about), color = Sand, content = Ink) {
-                Text(stringResource(R.string.settings_about_text), fontSize = 14.sp, lineHeight = 22.sp, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(10.dp))
-                Surface(
-                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${BuildConfig.UPDATE_REPO}"))) },
-                    color = Cream, shape = CircleShape, modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.settings_source), color = Emerald, fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center, modifier = Modifier.padding(14.dp))
-                }
-            }
             Spacer(Modifier.height(24.dp))
         }
     }

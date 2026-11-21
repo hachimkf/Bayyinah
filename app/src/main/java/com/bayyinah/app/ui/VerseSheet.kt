@@ -169,7 +169,7 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Bool
 
             // Big controls: previous · play/pause · repeat · next
             Row(
-                verticalAlignment = Alignment.Top,
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -178,8 +178,13 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Bool
                     stringResource(R.string.prev), stringResource(R.string.cd_prev),
                 ) { haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); vm.previous() }
 
-                PlayButton(state.isPlaying, state.buffering, state.audioAvailable) {
-                    haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); vm.togglePlay()
+                // Same label slot as its neighbours, so every button's circle sits on one centre line.
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    PlayButton(state.isPlaying, state.buffering, state.audioAvailable) {
+                        haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); vm.togglePlay()
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(" ", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
 
                 RepeatButton(state.repeat) {
@@ -308,7 +313,6 @@ private fun PlayButton(playing: Boolean, buffering: Boolean, enabled: Boolean, o
             .alpha(if (enabled) 1f else 0.4f)
             .clip(shape)
             .background(Emerald)
-            .border(5.dp, Amber.copy(alpha = 0.55f), shape)
             .clickable(enabled = enabled, interactionSource = source, indication = androidx.compose.material3.ripple(), onClick = onClick)
             .semantics { contentDescription = desc; role = Role.Button },
     ) {

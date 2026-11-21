@@ -8,8 +8,8 @@
     <string name="jump_subtitle">اختر السورة واكتب رقم الآية</string>
     <string name="surah_label">السورة</string>
     <string name="ayah_label">الآية</string>
-    <string name="jump_range">من ١ إلى %1$s</string>
-    <string name="jump_range_error">رقم غير صحيح، من ١ إلى %1$s</string>
+    <string name="jump_range">من 1 إلى %1$s</string>
+    <string name="jump_range_error">رقم غير صحيح، من 1 إلى %1$s</string>
     <string name="go_to_ayah">اذهب</string>
     <string name="pick_surah">اختر السورة</string>
     <string name="pick_surah_hint">رقم أو اسم السورة</string>
@@ -34,15 +34,12 @@
     <string name="settings_version">الإصدار %1$s</string>
     <string name="settings_check_now">ابحث عن تحديث</string>
     <string name="settings_auto">تحقق تلقائيًا</string>
-    <string name="settings_auto_desc">عند فتح التطبيق، مرة كل ١٢ ساعة</string>
+    <string name="settings_auto_desc">عند فتح التطبيق، مرة كل 12 ساعة</string>
     <string name="settings_reciter">القارئ</string>
-    <string name="settings_about">حول التطبيق</string>
-    <string name="settings_about_text">النص: مصحف ورش من مجمع الملك فهد لطباعة المصحف الشريف (quran-ws/quran-text، CC BY 4.0). التلاوات: mp3quran.net، تُبثّ عبر الإنترنت، وحقوقها لأصحابها. التعرّف على الآيات يتم على الهاتف.</string>
-    <string name="settings_source">الشيفرة المصدرية على GitHub</string>
 
     <!-- Her book -->
     <string name="book_title">كتابي: أقرأ وأتعلم</string>
-    <string name="book_subtitle">المستوى الثاني · ٢٤ درسًا من القرآن</string>
+    <string name="book_subtitle">المستوى الثاني · 24 درسًا من القرآن</string>
     <string name="book_page_hint">صفحة</string>
     <string name="book_open_page">افتح الصفحة</string>
     <string name="book_page_error">لا توجد آيات في هذه الصفحة</string>
@@ -84,7 +81,7 @@
     <!-- Updates -->
     <string name="update_available">تحديث جديد متوفر · %1$s</string>
     <string name="update_button">تحديث</string>
-    <string name="update_downloading">جارٍ التحميل %1$s٪</string>
+    <string name="update_downloading">جارٍ التحميل %1$s%%</string>
     <string name="update_ready">التحديث جاهز للتثبيت</string>
     <string name="update_install">تثبيت</string>
     <string name="update_failed">فشل التحميل، أعد المحاولة</string>
