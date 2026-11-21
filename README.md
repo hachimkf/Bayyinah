@@ -1,10 +1,10 @@
 # Bayyinah · بيّنة
 
-A light, offline Android app for a learner reciting the Quran in **Warsh 'an Nafi'**:
-**choose a surah, type the ayah number, listen and repeat.**
+A light Android app for a learner reciting the Quran in **Warsh 'an Nafi'**:
+**choose a surah and type the ayah number — or scan the verse in her book — then listen and repeat.**
 
 Kotlin · Jetpack Compose · Material 3 Expressive (`material3:1.5.0`) · Media3 ExoPlayer.
-APK ≈ **3 MB**. Text, search and navigation work offline; recitation streams ayah by ayah (internet needed).
+APK ≈ **7.5 MB** (scanner OCR included). Text, search and navigation work offline; recitation streams ayah by ayah (internet needed).
 
 ## Using it
 
@@ -12,6 +12,12 @@ APK ≈ **3 MB**. Text, search and navigation work offline; recitation streams a
   1. Tap the surah field and pick from the list (filter by number `67` or name `ملك` / `mulk`).
   2. Type the ayah number on the number pad.
   3. Tap **اقرأ واسمع · Lire**. An out-of-range number shows "choisir 1–31" instead of opening anything.
+- **امسح · Scanner le livre** (next to Lire) opens the camera. Frame the verse in the box and tap the amber
+  button. On-device OCR (Tesseract) identifies the ayah among all 6,214 and opens it in the player. The camera
+  permission is only asked the first time. Measured: 118/120 degraded test verses, 8/11 crops of a
+  Maghribi-script page, 0 false matches on non-Quran text (`OcrRegressionTest`).
+- **⚙ Réglages:** app version, **Vérifier** (check for updates now), automatic update check on/off,
+  reciter, and sources.
 - **متابعة · Reprendre** reopens the last verse she listened to.
 - **Search** finds words without tashkeel (`رب العلمين`), surah names (`الكهف`, `kahf`), or references
   (`18:10`, `18 10`).
@@ -20,9 +26,9 @@ APK ≈ **3 MB**. Text, search and navigation work offline; recitation streams a
 
 ## Install
 
-Download `Bayyinah-<version>-universal-release.apk` from the latest
-**[GitHub Release](https://github.com/hachimkf/Bayyinah/releases/latest)** and open it on the phone. One APK
-works on every phone (Android 7+).
+Download from the latest **[GitHub Release](https://github.com/hachimkf/Bayyinah/releases/latest)**:
+`…-arm64-v8a-release.apk` for almost every phone, or `…-armeabi-v7a-release.apk` for older 32-bit phones.
+Android 7+.
 
 ## Audio (recitation) — streamed, nothing stored
 
@@ -76,8 +82,8 @@ Bump `ASSET_DB_VERSION` in `DatabaseHelper.kt` whenever the database changes.
 
 ## In-app updates
 
-On launch (at most every 12 h), or when she taps the **بيّنة** logo, the app checks this repo's latest
-release. If there's a newer version, a banner offers **تحديث · Mettre à jour**. The app downloads the APK,
+On launch (at most every 12 h, can be switched off in Réglages), when she taps the **بيّنة** logo, or from
+**Réglages → Vérifier**, the app checks this repo's latest release. If there's a newer version, a banner offers **تحديث · Mettre à jour**. The app downloads the APK,
 checks its SHA-256 against GitHub, then opens Android's installer. The first time, Android asks to allow
 installs from Bayyinah.
 

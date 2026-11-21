@@ -10,11 +10,24 @@ import com.bayyinah.app.data.Surah
 import com.bayyinah.app.data.Verse
 import com.bayyinah.app.data.VerseRepository
 import com.bayyinah.app.match.ArabicNormalizer
+import com.bayyinah.app.match.MatchDecider
+import com.bayyinah.app.match.VerseMatcher
+import com.bayyinah.app.ocr.ArabicTextRecognizer
+import com.bayyinah.app.ocr.OcrAnalyzer
+import com.bayyinah.app.ocr.TesseractArabicRecognizer
+import com.bayyinah.app.ocr.TextImagePrep
 import com.bayyinah.app.update.UpdateInfo
 import com.bayyinah.app.update.UpdateManager
+import android.graphics.Bitmap
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,8 +47,16 @@ sealed interface UpdateUi {
     data class Failed(val info: UpdateInfo) : UpdateUi
 }
 
-/** Player sheet state. */
+enum class Screen { Home, Scanner, Settings }
+enum class ScanState { Loading, Idle, Scanning, NoMatch }
+
+/** Player sheet state (+ which screen is shown). */
 data class UiState(
+    val screen: Screen = Screen.Home,
+    val scanState: ScanState = ScanState.Loading,
+    val torch: Boolean = false,
+    /** Settings: check GitHub for updates automatically on launch. */
+    val autoUpdate: Boolean = true,
     val verse: Verse? = null,
     /** False when the chosen reciter has no timing for this ayah. */
     val audioAvailable: Boolean = false,
@@ -72,7 +93,7 @@ data class IndexState(
     val lastVerse: Verse? = null,
 )
 
-@OptIn(FlowPreview::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.Listener {
 
     private val repository = VerseRepository(app)
@@ -93,6 +114,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
 
     private var progressJob: Job? = null
 
+    // Scanning (loaded lazily the first time the scanner opens).
+    val analyzer = OcrAnalyzer()
+    /** Tesseract is not thread-safe and is heavy: one dedicated worker. */
+    private val ocrDispatcher = Dispatchers.Default.limitedParallelism(1)
+    private var recognizer: ArabicTextRecognizer? = null
+    private var matcher: VerseMatcher? = null
+    private var scanSetupJob: Job? = null
+    private var scanJob: Job? = null
+
     init {
         viewModelScope.launch {
             try {
@@ -109,7 +139,123 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
             }
         }
         viewModelScope.launch { queryFlow.debounce(250).collect { runSearch(it) } }
-        checkForUpdates(force = false)
+        val auto = prefs.getBoolean(KEY_AUTO_UPDATE, true)
+        _state.update { it.copy(autoUpdate = auto) }
+        if (auto) checkForUpdates(force = false)
+    }
+
+    // ---------------------------------------------------------------- navigation
+
+    fun openScanner() {
+        _state.update { it.copy(screen = Screen.Scanner, scanState = if (matcher != null && recognizer != null) ScanState.Idle else ScanState.Loading) }
+        prepareScanner()
+    }
+
+    fun openSettings() = _state.update { it.copy(screen = Screen.Settings) }
+
+    /** Back to home from scanner/settings; returns false when already home. */
+    fun backToHome(): Boolean {
+        if (_state.value.screen == Screen.Home) return false
+        scanJob?.cancel(); analyzer.cancel()
+        _state.update { it.copy(screen = Screen.Home, torch = false) }
+        return true
+    }
+
+    fun setAutoUpdate(on: Boolean) {
+        prefs.edit().putBoolean(KEY_AUTO_UPDATE, on).apply()
+        _state.update { it.copy(autoUpdate = on) }
+    }
+
+    fun toggleTorch() = _state.update { it.copy(torch = !it.torch) }
+
+    // ---------------------------------------------------------------- scanning
+
+    private fun prepareScanner() {
+        if (scanSetupJob != null) return
+        scanSetupJob = viewModelScope.launch {
+            try {
+                val entries = repository.loadMatchEntries()
+                matcher = withContext(Dispatchers.Default) { VerseMatcher(entries.map { VerseMatcher.Entry(it.first, it.second) }) }
+                withContext(ocrDispatcher) { recognizer = TesseractArabicRecognizer(getApplication()) }
+                _state.update { if (it.scanState == ScanState.Loading) it.copy(scanState = ScanState.Idle) else it }
+            } catch (e: Exception) {
+                android.util.Log.e("Bayyinah", "Scanner setup failed", e)
+                scanSetupJob = null
+            }
+        }
+    }
+
+    fun scan() {
+        if (_state.value.scanState == ScanState.Loading || scanJob?.isActive == true) return
+        _state.update { it.copy(scanState = ScanState.Scanning) }
+        scanJob = viewModelScope.launch {
+            var found: Verse? = null
+            // Several successive frames: the first may be blurry while autofocus settles.
+            for (attempt in 0 until SCAN_ATTEMPTS) {
+                if (attempt > 0) delay(200)
+                val frame = nextFrame() ?: continue
+                val id = withContext(ocrDispatcher) { recognizeFrame(frame) }
+                if (id != null) { found = repository.byId(id); break }
+            }
+            val verse = found
+            if (verse != null) {
+                showVerse(verse, autoplay = true)
+                _state.update { it.copy(scanState = ScanState.Idle) }
+            } else {
+                _state.update { it.copy(scanState = ScanState.NoMatch) }
+                delay(3000)
+                _state.update { if (it.scanState == ScanState.NoMatch) it.copy(scanState = ScanState.Idle) else it }
+            }
+        }
+    }
+
+    /** OCR the crop at each calibrated text size; stop early on a decisive pass. */
+    private fun recognizeFrame(frame: Bitmap): Int? {
+        val ocr = recognizer ?: return null
+        val m = matcher ?: return null
+        val near = _state.value.verse?.id
+        val variants = try { TextImagePrep.prepare(frame) } finally { frame.recycle() }
+        val passes = ArrayList<List<VerseMatcher.Candidate>>(variants.size)
+        try {
+            for (img in variants) {
+                val text = ocr.recognize(img)
+                val top = m.rank(text)
+                if (com.bayyinah.app.BuildConfig.DEBUG) android.util.Log.d("BayyinahOcr", "pass ${img.width}x${img.height}: '$text' -> ${top.take(2)}")
+                passes += top
+                MatchDecider.decisive(top, near)?.let { return it }
+            }
+        } finally {
+            variants.forEach { it.recycle() }
+        }
+        return MatchDecider.decide(passes, near)
+    }
+
+    private suspend fun nextFrame(): Bitmap? {
+        val deferred = CompletableDeferred<Bitmap?>()
+        analyzer.requestFrame { deferred.complete(it) }
+        return withTimeoutOrNull(1500) { deferred.await() }.also { if (it == null) analyzer.cancel() }
+    }
+
+    /**
+     * Debug builds only: run the on-device OCR pipeline on an image file instead of a camera frame
+     * (`adb shell am start -n com.bayyinah.app/.MainActivity --es ocr_test <path in files/>`).
+     */
+    fun debugRecognizeFile(path: String) {
+        if (!com.bayyinah.app.BuildConfig.DEBUG) return
+        prepareScanner()
+        viewModelScope.launch {
+            while (recognizer == null || matcher == null) delay(200)
+            val id = withContext(ocrDispatcher) {
+                val src = android.graphics.BitmapFactory.decodeFile(path) ?: return@withContext null
+                val gray = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+                android.graphics.Canvas(gray).drawBitmap(src, 0f, 0f, android.graphics.Paint().apply {
+                    colorFilter = android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix().apply { setSaturation(0f) })
+                })
+                src.recycle()
+                recognizeFrame(gray).also { android.util.Log.d("BayyinahOcr", "RESULT $path -> $it") }
+            }
+            id?.let { repository.byId(it) }?.let { showVerse(it, autoplay = false) }
+        }
     }
 
     // ---------------------------------------------------------------- quick jump
@@ -291,7 +437,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         _state.update { it.copy(verse = null, isPlaying = false, buffering = false, progress = 0f) }
     }
 
-    fun onAppBackgrounded() = player.pause()
+    fun onAppBackgrounded() {
+        player.pause()
+        _state.update { it.copy(torch = false) }
+    }
 
     // ---------------------------------------------------------------- player callbacks
 
@@ -314,13 +463,21 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         _state.update { it.copy(isPlaying = false, buffering = false, audioError = true) }
 
     override fun onCleared() {
+        scanJob?.cancel()
+        analyzer.cancel()
         player.release()
         repository.close()
+        // Release Tesseract on its own thread so we never race an in-flight recognize().
+        val r = recognizer
+        recognizer = null
+        if (r != null) CoroutineScope(ocrDispatcher).launch { r.close() }
     }
 
     private companion object {
         const val KEY_LAST_VERSE = "last_verse"
         const val KEY_RECITER = "reciter"
+        const val KEY_AUTO_UPDATE = "auto_update"
+        const val SCAN_ATTEMPTS = 3
 
         fun toLatinDigits(s: String) = buildString {
             for (c in s) append(

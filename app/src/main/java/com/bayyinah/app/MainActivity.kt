@@ -22,6 +22,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             BayyinahTheme {
                 val vm: MainViewModel = viewModel()
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    if (BuildConfig.DEBUG) intent?.getStringExtra("ocr_test")?.let { vm.debugRecognizeFile(it) }
+                }
                 // Stop recitation when the app leaves the screen (battery + courtesy).
                 LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onAppBackgrounded() }
                 BayyinahApp(vm)

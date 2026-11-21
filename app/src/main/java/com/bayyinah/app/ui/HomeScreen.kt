@@ -103,7 +103,7 @@ fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, sheetOpen
     val bottomPad = if (sheetOpen) 440.dp else 32.dp // keep the last items above the player sheet
 
     Column(Modifier.fillMaxSize().background(Cream).statusBarsPadding()) {
-        TopBar(index.openSurah, onBack = { keyboard?.hide(); vm.back() }, onLogo = { vm.checkForUpdates(force = true) })
+        TopBar(index.openSurah, onBack = { keyboard?.hide(); vm.back() }, onLogo = { vm.checkForUpdates(force = true) }, onSettings = { keyboard?.hide(); vm.openSettings() })
 
         val mode = when {
             index.openSurah != null -> 2
@@ -132,7 +132,7 @@ fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, sheetOpen
                         }
                     }
                     item(key = "jump") {
-                        QuickJumpCard(index, vm, onPickSurah = { keyboard?.hide(); pickerOpen = true }, onGo = { keyboard?.hide(); vm.goToJump() })
+                        QuickJumpCard(index, vm, onPickSurah = { keyboard?.hide(); pickerOpen = true }, onGo = { keyboard?.hide(); vm.goToJump() }, onScan = { keyboard?.hide(); vm.openScanner() })
                     }
                     index.lastVerse?.let { last ->
                         item(key = "continue") { ContinueChip(last) { vm.selectVerse(last) } }
@@ -156,7 +156,7 @@ fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, sheetOpen
 }
 
 @Composable
-private fun TopBar(open: Surah?, onBack: () -> Unit, onLogo: () -> Unit) {
+private fun TopBar(open: Surah?, onBack: () -> Unit, onLogo: () -> Unit, onSettings: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         if (open != null) {
             FilledTonalIconButton(
@@ -180,6 +180,11 @@ private fun TopBar(open: Surah?, onBack: () -> Unit, onLogo: () -> Unit) {
                     }
                 }
             }
+            Spacer(Modifier.weight(1f))
+            FilledTonalIconButton(
+                onClick = onSettings, modifier = Modifier.size(56.dp),
+                colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Mint, contentColor = EmeraldDeep),
+            ) { Icon(AppIcons.Settings, stringResource(R.string.cd_settings), Modifier.size(26.dp)) }
         }
     }
 }
@@ -194,7 +199,7 @@ private fun LogoMark() {
 
 /** Dark emerald hero: choose a surah, type the ayah number, read. */
 @Composable
-private fun QuickJumpCard(index: IndexState, vm: MainViewModel, onPickSurah: () -> Unit, onGo: () -> Unit) {
+private fun QuickJumpCard(index: IndexState, vm: MainViewModel, onPickSurah: () -> Unit, onGo: () -> Unit, onScan: () -> Unit) {
     val s = index.jumpSurah
     Surface(color = EmeraldDeep, contentColor = Cream, shape = RoundedCornerShape(36.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(18.dp)) {
@@ -240,17 +245,35 @@ private fun QuickJumpCard(index: IndexState, vm: MainViewModel, onPickSurah: () 
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = onGo,
-                colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = EmeraldDeep),
-                shape = CircleShape,
-                modifier = Modifier.fillMaxWidth().height(64.dp),
-            ) {
-                Icon(AppIcons.Play, null, Modifier.size(28.dp))
-                Spacer(Modifier.width(10.dp))
-                Text(stringResource(R.string.jump_go), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            // Two ways in: read the chosen ayah, or scan it from the book.
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = onGo,
+                    colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = EmeraldDeep),
+                    shape = CircleShape,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp),
+                    modifier = Modifier.weight(1f).height(72.dp),
+                ) { ButtonLabel(AppIcons.Play, stringResource(R.string.read_ar), stringResource(R.string.read_fr)) }
+                Button(
+                    onClick = onScan,
+                    colors = ButtonDefaults.buttonColors(containerColor = Cream, contentColor = EmeraldDeep),
+                    shape = CircleShape,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp),
+                    modifier = Modifier.weight(1f).height(72.dp),
+                ) { ButtonLabel(AppIcons.Scan, stringResource(R.string.scan_btn_ar), stringResource(R.string.scan_btn_fr)) }
             }
         }
+    }
+}
+
+/** Icon + Arabic (bold) over French: fits half-width buttons without truncation. */
+@Composable
+private fun ButtonLabel(icon: androidx.compose.ui.graphics.vector.ImageVector, ar: String, fr: String) {
+    Icon(icon, null, Modifier.size(26.dp))
+    Spacer(Modifier.width(10.dp))
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(ar, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 1)
+        Text(fr, fontSize = 12.sp, maxLines = 1)
     }
 }
 

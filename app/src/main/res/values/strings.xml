@@ -19,6 +19,38 @@
     <string name="pick_surah">اختر السورة · Choisir la sourate</string>
     <string name="pick_surah_hint">رقم أو اسم · numéro ou nom</string>
 
+    <!-- Scanner -->
+    <string name="read_ar">اقرأ واسمع</string>
+    <string name="read_fr">Lire</string>
+    <string name="scan_btn_ar">امسح</string>
+    <string name="scan_btn_fr">Scanner le livre</string>
+    <string name="scan_title">امسح الآية · Scanner un verset</string>
+    <string name="frame_hint_ar">ضع الآية داخل الإطار</string>
+    <string name="frame_hint_fr">Cadrez le verset ici</string>
+    <string name="scan_ar">إقرأ واسمع</string>
+    <string name="scan_fr">ÉCOUTER</string>
+    <string name="scanning_ar">جارٍ القراءة…</string>
+    <string name="scanning_fr">Lecture du verset…</string>
+    <string name="no_match_ar">لم نتعرّف على الآية، حاول مجددًا</string>
+    <string name="no_match_fr">Verset non reconnu, réessayez</string>
+    <string name="loading_ar">جارٍ التحضير…</string>
+    <string name="loading_fr">Préparation…</string>
+    <string name="cd_torch">Lampe</string>
+    <string name="cd_scan">Lire le verset</string>
+
+    <!-- Settings -->
+    <string name="settings_title">الإعدادات · Réglages</string>
+    <string name="cd_settings">Réglages</string>
+    <string name="settings_updates">التحديثات · Mises à jour</string>
+    <string name="settings_version">الإصدار · Version %1$s</string>
+    <string name="settings_check_now">ابحث عن تحديث · Vérifier</string>
+    <string name="settings_auto">تحقق تلقائيًا · Vérifier automatiquement</string>
+    <string name="settings_auto_desc">عند فتح التطبيق، مرة كل 12 ساعة · Au démarrage, au plus toutes les 12 h</string>
+    <string name="settings_reciter">القارئ · Récitant</string>
+    <string name="settings_about">حول التطبيق · À propos</string>
+    <string name="settings_about_text">Texte : Mushaf Warsh du Complexe du Roi Fahd (KFGQPC) via quran-ws/quran-text (CC BY 4.0). Récitations : mp3quran.net, diffusées en ligne, © leurs récitants. Lecture du verset : Tesseract OCR, sur l’appareil.</string>
+    <string name="settings_source">الشيفرة المصدرية · Code source sur GitHub</string>
+
     <!-- Search / list -->
     <string name="search_hint">ابحث: كلمة، سورة، 18:10 · Rechercher</string>
     <string name="surahs_section">السور · Sourates</string>

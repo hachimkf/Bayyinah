@@ -6,8 +6,8 @@ plugins {
 }
 
 // ── Release version: bump BOTH before every GitHub release (tools/release.sh reads them). ──
-val appVersionCode = 4
-val appVersionName = "1.2.0"
+val appVersionCode = 5
+val appVersionName = "1.3.0"
 
 /** GitHub repo whose Releases the in-app updater checks ("owner/name"). */
 val updateRepo = "hachimkf/Bayyinah"
@@ -43,8 +43,21 @@ android {
         }
     }
 
-    // No native code any more (camera/OCR removed): one small APK works on every phone.
+    // One APK per CPU family: Tesseract's native libs (verse scanning) are most of the size.
+    // arm64-v8a = almost every phone since ~2017; armeabi-v7a = older / Android Go 32-bit phones.
+    // The in-app updater picks the asset whose name contains the phone's ABI.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
+        }
+    }
+
     packaging {
+        // Store native libs compressed in the APK (≈55% smaller download).
+        jniLibs { useLegacyPackaging = true }
         resources { excludes += listOf("/META-INF/{AL2.0,LGPL2.1}", "/META-INF/*.version", "/kotlin/**", "DebugProbesKt.bin") }
     }
 
@@ -92,6 +105,13 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
 
     implementation(libs.media3.exoplayer)
+
+    // Verse scanning: camera + offline Arabic OCR (Tesseract 5 with bundled ara.traineddata).
+    implementation(libs.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
+    implementation(libs.tesseract4android)
 
     testImplementation(libs.junit)
 }

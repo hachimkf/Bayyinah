@@ -5,6 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
@@ -30,19 +31,33 @@ fun BayyinahApp(vm: MainViewModel) {
     val update by vm.update.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
 
-    // Dark status-bar icons over the cream background.
+    // Dark status-bar icons over cream; light ones over the camera.
     val view = LocalView.current
     SideEffect {
-        (view.context as? Activity)?.window?.let { WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = true }
+        (view.context as? Activity)?.window?.let {
+            WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = state.screen != Screen.Scanner
+        }
     }
     LaunchedEffect(state.verse?.id) {
         if (state.verse != null) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
     }
     BackHandler(enabled = state.verse != null) { vm.dismissVerse() }
-    BackHandler(enabled = state.verse == null && index.openSurah != null) { vm.back() }
+    BackHandler(enabled = state.verse == null && state.screen != Screen.Home) { vm.backToHome() }
+    BackHandler(enabled = state.verse == null && state.screen == Screen.Home && index.openSurah != null) { vm.back() }
 
     Box(Modifier.fillMaxSize()) {
-        HomeScreen(vm, index, update, sheetOpen = state.verse != null, setupError = state.setupError)
+        androidx.compose.animation.AnimatedContent(
+            targetState = state.screen,
+            transitionSpec = { (fadeIn() + androidx.compose.animation.scaleIn(initialScale = 0.96f)) togetherWith fadeOut() },
+            label = "screen",
+        ) { screen ->
+            when (screen) {
+                Screen.Home -> HomeScreen(vm, index, update, sheetOpen = state.verse != null, setupError = state.setupError)
+                // The camera is only bound while the scanner is shown (battery).
+                Screen.Scanner -> ScannerRoute(vm, state)
+                Screen.Settings -> SettingsScreen(vm, state, update)
+            }
+        }
         AnimatedVisibility(
             visible = state.verse != null,
             modifier = Modifier.align(Alignment.BottomCenter),
