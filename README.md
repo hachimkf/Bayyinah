@@ -22,6 +22,7 @@ APK ≈ **7.5 MB** (scanner OCR included). Text, search and navigation work offl
   and reciter.
 - **♥ المحفوظات** (heart beside the logo): ayat she marked with the heart in the player, and the last 30 she listened to.
 - **السور** list is folded by default; tap it to show the 114 surahs.
+- On the home screen, Back once shows «اسحب مرة أخرى للخروج»; a second Back within 2 s closes the app.
 - **Search** finds words without tashkeel (`رب العلمين`), surah names (`الكهف`, `kahf`), or references
   (`18:10`, `18 10`).
 - **Surah page:** tap a surah to see all its ayat. The "go to ayah" field there scrolls to the ayah and plays it.
@@ -88,7 +89,7 @@ Muhammad Saayed was left out because his timings use Hafs numbering.
 - **Data use:** about 1 MB per minute (128 kbps). Nothing is cached on the phone.
 - **Offline:** text, search and navigation work. Audio shows «تعذّر تشغيل التلاوة، تحقق من الإنترنت» with
   a Retry button.
-- **She chooses the reciter** from the chip in the player. The choice is remembered.
+- **She chooses the reciter** from the small circle beside the heart in the player (tap: it shows the name; tap again: the list). The choice is remembered.
 
 To refresh or add reciters with timings (`read` ids listed at `https://mp3quran.net/api/v3/ayat_timing/reads`):
 
@@ -118,7 +119,7 @@ Bump `ASSET_DB_VERSION` in `DatabaseHelper.kt` whenever the database changes.
 
 ## In-app updates
 
-On launch (at most every 12 h, can be switched off in الإعدادات), when she taps the **بيّنة** logo, or from
+On launch (at most every 12 h, can be switched off in الإعدادات), or from
 **الإعدادات → ابحث عن تحديث**, the app checks this repo's latest release. If there's a newer version, a banner offers **تحديث**. The app downloads the APK,
 checks its SHA-256 against GitHub, then opens Android's installer. The first time, Android asks to allow
 installs from Bayyinah.

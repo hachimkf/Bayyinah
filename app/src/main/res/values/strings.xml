@@ -96,5 +96,6 @@
     <string name="cd_next">الآية التالية</string>
     <string name="cd_close">إغلاق</string>
     <string name="cd_back">رجوع</string>
+    <string name="back_again">اسحب مرة أخرى للخروج</string>
     <string name="setup_error">تعذّر فتح المصحف. أعد تشغيل التطبيق.</string>
 </resources>

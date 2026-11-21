@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -119,17 +121,19 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Bool
                     colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Parchment, contentColor = EmeraldDeep),
                 ) { Icon(AppIcons.Close, stringResource(R.string.cd_close), modifier = Modifier.size(28.dp)) }
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                    Text("سورة ${verse.surahName}", style = MaterialTheme.typography.titleLarge, color = EmeraldDeep, maxLines = 1)
+                    Text("سورة ${verse.surahName}", style = MaterialTheme.typography.titleLarge, color = EmeraldDeep, maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     Text("الآية ${verse.ayah.toArabicDigits()}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                ReciterButton(state, onPick = vm::selectReciter)
+                Spacer(Modifier.width(8.dp))
                 HeartButton(favorite) {
                     haptics.performHapticFeedback(if (favorite) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
                     vm.toggleFavorite(verse)
                 }
             }
             Spacer(Modifier.height(8.dp))
-            ReciterChip(state, onPick = vm::selectReciter)
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
 
             // The verse on a soft mint card, large KFGQPC Warsh script.
             val fontSize = when {
@@ -237,19 +241,36 @@ private fun Notice(text: String, action: String? = null, onAction: () -> Unit = 
     }
 }
 
-/** "القارئ · Omar Al-Qazabri ▾" — opens the reciter list. */
+/**
+ * Reciter: a small circle beside the heart. Tap → it expands to show the reciter's name;
+ * tap the name → the reciter list. It folds back by itself after a few seconds.
+ */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun ReciterChip(state: UiState, onPick: (com.bayyinah.app.data.Reciter) -> Unit) {
+private fun ReciterButton(state: UiState, onPick: (com.bayyinah.app.data.Reciter) -> Unit) {
     val r = state.reciter ?: return
     var open by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
-    Surface(onClick = { open = true }, color = Mint, shape = CircleShape, modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-            Icon(AppIcons.Listen, null, tint = Emerald, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.width(10.dp))
-            Text(r.nameAr, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = EmeraldDeep, maxLines = 1)
-            Spacer(Modifier.width(8.dp))
-            Icon(AppIcons.ChevronDown, null, tint = Emerald, modifier = Modifier.size(22.dp))
+    var expanded by remember { androidx.compose.runtime.mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(expanded) {
+        if (expanded) { kotlinx.coroutines.delay(4000); expanded = false }
+    }
+    Surface(
+        onClick = { if (expanded) open = true else expanded = true },
+        color = Mint, shape = CircleShape,
+        modifier = Modifier.height(56.dp).widthIn(min = 56.dp)
+            .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = if (expanded) 16.dp else 0.dp),
+        ) {
+            Icon(AppIcons.Listen, stringResource(R.string.pick_reciter), tint = Emerald, modifier = Modifier.size(26.dp))
+            if (expanded) {
+                Spacer(Modifier.width(8.dp))
+                Text(r.nameAr, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = EmeraldDeep, maxLines = 1)
+                Spacer(Modifier.width(4.dp))
+                Icon(AppIcons.ChevronDown, null, tint = Emerald, modifier = Modifier.size(20.dp))
+            }
         }
     }
     if (open) {

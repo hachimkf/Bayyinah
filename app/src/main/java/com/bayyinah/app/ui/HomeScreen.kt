@@ -167,7 +167,6 @@ fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, setupErro
         TopBar(
             index.openSurah, index.openLesson,
             onBack = { keyboard?.hide(); vm.back() },
-            onLogo = { vm.checkForUpdates(force = true) },
             onHistory = { keyboard?.hide(); vm.openHistory() },
             onSettings = { keyboard?.hide(); vm.openSettings() },
         )
@@ -186,7 +185,7 @@ val TopFade = Brush.verticalGradient(
 )
 
 @Composable
-private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBack: () -> Unit, onLogo: () -> Unit, onHistory: () -> Unit, onSettings: () -> Unit) {
+private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBack: () -> Unit, onHistory: () -> Unit, onSettings: () -> Unit) {
     Box(Modifier.fillMaxWidth().background(TopFade).statusBarsPadding().height(TopBarHeight + FadeTail)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -204,9 +203,7 @@ private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBa
                 }
                 Spacer(Modifier.width(52.dp)) // balances the back button so the title is truly centred
             } else {
-                // Tapping the logo checks GitHub for a new version.
-                Surface(onClick = onLogo, color = Color.Transparent, shape = RoundedCornerShape(18.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
                         androidx.compose.foundation.Image(
                             painter = painterResource(R.drawable.app_logo), contentDescription = null,
                             modifier = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)),
@@ -216,7 +213,6 @@ private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBa
                             Text("بيّنة", fontFamily = QuranFont, fontSize = 30.sp, color = EmeraldDeep)
                             Text(stringResource(R.string.app_tagline), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                    }
                 }
                 Spacer(Modifier.weight(1f))
                 RoundIconButton(AppIcons.Heart, stringResource(R.string.cd_history), onHistory, tint = Amber)
@@ -274,13 +270,13 @@ private fun QuickJumpCard(index: IndexState, vm: MainViewModel, onPickSurah: () 
                 Button(
                     onClick = onGo,
                     colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = EmeraldDeep),
-                    shape = CircleShape, contentPadding = PaddingValues(horizontal = 12.dp),
+                    shape = CircleShape, contentPadding = PaddingValues(horizontal = 8.dp),
                     modifier = Modifier.weight(1f).height(64.dp),
                 ) { ButtonLabel(AppIcons.Play, stringResource(R.string.read)) }
                 Button(
                     onClick = onScan,
                     colors = ButtonDefaults.buttonColors(containerColor = Cream, contentColor = EmeraldDeep),
-                    shape = CircleShape, contentPadding = PaddingValues(horizontal = 12.dp),
+                    shape = CircleShape, contentPadding = PaddingValues(horizontal = 8.dp),
                     modifier = Modifier.weight(1f).height(64.dp),
                 ) { ButtonLabel(AppIcons.Scan, stringResource(R.string.scan_btn)) }
             }
@@ -291,9 +287,9 @@ private fun QuickJumpCard(index: IndexState, vm: MainViewModel, onPickSurah: () 
 /** Icon + label, centred together. */
 @Composable
 private fun ButtonLabel(icon: ImageVector, text: String) {
-    Icon(icon, null, Modifier.size(24.dp))
-    Spacer(Modifier.width(8.dp))
-    Text(text, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1)
+    Icon(icon, null, Modifier.size(22.dp))
+    Spacer(Modifier.width(6.dp))
+    Text(text, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, softWrap = false, overflow = TextOverflow.Visible)
 }
 
 @Composable

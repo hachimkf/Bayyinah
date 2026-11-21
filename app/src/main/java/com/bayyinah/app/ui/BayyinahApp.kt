@@ -16,6 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -54,6 +57,16 @@ fun BayyinahApp(vm: MainViewModel) {
     BackHandler(enabled = state.verse != null) { vm.dismissVerse() }
     BackHandler(enabled = state.verse == null && state.screen != Screen.Home) { vm.backToHome() }
     BackHandler(enabled = state.verse == null && state.screen == Screen.Home && index.openSurah != null) { vm.back() }
+    // Home: the first back swipe only shows a hint; a second one within 2 s leaves the app.
+    var lastBack by remember { mutableLongStateOf(0L) }
+    BackHandler(enabled = state.verse == null && state.screen == Screen.Home && index.openSurah == null) {
+        val now = android.os.SystemClock.uptimeMillis()
+        if (now - lastBack < 2000) (view.context as? Activity)?.finish()
+        else {
+            lastBack = now
+            android.widget.Toast.makeText(view.context, com.bayyinah.app.R.string.back_again, android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // Arabic only: the whole app is laid out right-to-left.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
