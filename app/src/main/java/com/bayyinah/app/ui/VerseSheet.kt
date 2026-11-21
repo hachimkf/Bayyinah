@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -88,22 +90,26 @@ import com.bayyinah.app.ui.theme.VerseTextStyle
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse) {
+fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Boolean = false) {
     val haptics = LocalHapticFeedback.current
     Surface(
         color = Cream,
-        shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
-        shadowElevation = 16.dp,
-        modifier = Modifier.fillMaxWidth(),
+        shape = if (fullScreen) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
+        shadowElevation = if (fullScreen) 0.dp else 16.dp,
+        modifier = if (fullScreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = if (fullScreen) Arrangement.SpaceBetween else Arrangement.Top,
             modifier = Modifier
+                .then(if (fullScreen) Modifier.statusBarsPadding() else Modifier)
                 .navigationBarsPadding()
                 .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 14.dp),
         ) {
-            Box(Modifier.width(44.dp).height(5.dp).background(Parchment, CircleShape))
-            Spacer(Modifier.height(10.dp))
+            if (!fullScreen) {
+                Box(Modifier.width(44.dp).height(5.dp).background(Parchment, CircleShape))
+                Spacer(Modifier.height(10.dp))
+            }
 
             // Header: close · surah title · cookie-shaped ayah badge
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -137,7 +143,7 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse) {
             Surface(color = Mint, shape = RoundedCornerShape(32.dp), modifier = Modifier.fillMaxWidth()) {
                 Box(
                     Modifier
-                        .heightIn(max = 230.dp)
+                        .heightIn(max = if (fullScreen) 380.dp else 230.dp)
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 18.dp, vertical = 14.dp),
                     contentAlignment = Alignment.Center,
@@ -194,6 +200,18 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse) {
             SpeedSelector(state.slow) {
                 haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                 vm.setSlow(it)
+            }
+            if (fullScreen) {
+                Spacer(Modifier.height(12.dp))
+                // Back to the camera: scanning resumes automatically.
+                androidx.compose.material3.Button(
+                    onClick = { haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); vm.openScanner() },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Amber, contentColor = EmeraldDeep),
+                    shape = CircleShape, modifier = Modifier.fillMaxWidth().height(64.dp),
+                ) {
+                    Icon(AppIcons.Scan, null, Modifier.size(26.dp)); Spacer(Modifier.width(10.dp))
+                    Text(stringResource(R.string.scan_again), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
             }
         }
     }

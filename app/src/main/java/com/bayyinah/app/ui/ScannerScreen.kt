@@ -161,17 +161,17 @@ fun ScannerScreen(vm: MainViewModel, state: UiState) {
             ) { Icon(if (state.torch) AppIcons.FlashOn else AppIcons.FlashOff, stringResource(R.string.cd_torch), Modifier.size(28.dp)) }
         }
 
-        // Instruction + scan button, positioned just under the frame.
+        // Instruction + live "searching" indicator under the frame. Scanning is automatic;
+        // tapping the indicator just refocuses the camera on the frame.
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth().offset(y = with(density) { frame.bottom.toDp() } + 16.dp),
         ) {
             HintLabel(state)
             Spacer(Modifier.height(20.dp))
-            ScanButton(state.scanState) {
+            SearchingIndicator {
                 haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
                 focusTick++
-                vm.scan()
             }
         }
 
@@ -210,7 +210,7 @@ private fun FramingOverlay(frame: RectF, scanning: Boolean) {
 private fun HintLabel(state: UiState) {
     val (ar, fr, color) = when (state.scanState) {
         ScanState.Loading -> Triple(R.string.loading_ar, R.string.loading_fr, Cream)
-        ScanState.Scanning -> Triple(R.string.scanning_ar, R.string.scanning_fr, Amber)
+        ScanState.Scanning -> Triple(R.string.scanning_ar, R.string.scanning_fr, Cream)
         ScanState.NoMatch -> Triple(R.string.no_match_ar, R.string.no_match_fr, Amber)
         ScanState.Idle -> Triple(R.string.frame_hint_ar, R.string.frame_hint_fr, Cream)
     }
@@ -224,46 +224,23 @@ private fun HintLabel(state: UiState) {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ScanButton(state: ScanState, onClick: () -> Unit) {
-    val busy = state == ScanState.Scanning || state == ScanState.Loading
-    val description = stringResource(R.string.cd_scan)
+private fun SearchingIndicator(onTap: () -> Unit) {
+    val description = stringResource(R.string.cd_refocus)
     val spin by rememberInfiniteTransition(label = "scanSpin").animateFloat(
         0f, 360f, infiniteRepeatable(tween(20000, easing = LinearEasing)), label = "deg",
     )
     val shape = MaterialShapes.Cookie12Sided.toShape()
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(96.dp)) {
-            // Slowly turning scalloped halo + solid amber cookie (M3 Expressive shapes).
-            Box(Modifier.size(96.dp).rotate(spin).clip(shape).background(Amber.copy(alpha = 0.35f)))
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(shape)
-                    .background(Amber)
-                    .clickable(
-                        enabled = !busy,
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = androidx.compose.material3.ripple(),
-                        onClick = onClick,
-                    )
-                    .semantics { contentDescription = description; role = Role.Button },
-            ) {
-                AnimatedContent(
-                    targetState = busy,
-                    transitionSpec = { scaleIn() + fadeIn() togetherWith scaleOut() + fadeOut() },
-                    label = "scanIcon",
-                ) { b ->
-                    if (b) LoadingIndicator(color = Color.White, modifier = Modifier.size(54.dp))
-                    else Icon(AppIcons.Listen, null, tint = Color.White, modifier = Modifier.size(38.dp))
-                }
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "${stringResource(R.string.scan_ar)} • ${stringResource(R.string.scan_fr)}",
-            color = Amber, fontWeight = FontWeight.Bold, fontSize = 15.sp,
-        )
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(96.dp)) {
+        Box(Modifier.size(96.dp).rotate(spin).clip(shape).background(Amber.copy(alpha = 0.30f)))
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(80.dp)
+                .clip(shape)
+                .background(Amber)
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = androidx.compose.material3.ripple(), onClick = onTap)
+                .semantics { contentDescription = description; role = Role.Button },
+        ) { LoadingIndicator(color = Color.White, modifier = Modifier.size(56.dp)) }
     }
 }
 

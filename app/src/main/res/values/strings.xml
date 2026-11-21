@@ -29,14 +29,16 @@
     <string name="frame_hint_fr">Cadrez le verset ici</string>
     <string name="scan_ar">إقرأ واسمع</string>
     <string name="scan_fr">ÉCOUTER</string>
-    <string name="scanning_ar">جارٍ القراءة…</string>
-    <string name="scanning_fr">Lecture du verset…</string>
+    <string name="scanning_ar">وجّه الكاميرا نحو الآية</string>
+    <string name="scanning_fr">Recherche automatique… la récitation démarre seule</string>
     <string name="no_match_ar">لم نتعرّف على الآية، حاول مجددًا</string>
     <string name="no_match_fr">Verset non reconnu, réessayez</string>
     <string name="loading_ar">جارٍ التحضير…</string>
     <string name="loading_fr">Préparation…</string>
     <string name="cd_torch">Lampe</string>
     <string name="cd_scan">Lire le verset</string>
+    <string name="cd_refocus">Refaire la mise au point</string>
+    <string name="scan_again">امسح آية أخرى · Scanner un autre verset</string>
 
     <!-- Settings -->
     <string name="settings_title">الإعدادات · Réglages</string>

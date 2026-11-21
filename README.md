@@ -12,8 +12,9 @@ APK ≈ **7.5 MB** (scanner OCR included). Text, search and navigation work offl
   1. Tap the surah field and pick from the list (filter by number `67` or name `ملك` / `mulk`).
   2. Type the ayah number on the number pad.
   3. Tap **اقرأ واسمع · Lire**. An out-of-range number shows "choisir 1–31" instead of opening anything.
-- **امسح · Scanner le livre** (next to Lire) opens the camera. Frame the verse in the box and tap the amber
-  button. On-device OCR (Tesseract) identifies the ayah among all 6,214 and opens it in the player. The camera
+- **امسح · Scanner le livre** (next to Lire) opens the camera. Frame the verse in the box: scanning is
+  **automatic** (no button). When the ayah is recognised, the camera closes and the ayah plays in a
+  **full-screen player**. «امسح آية أخرى» or Back returns to the camera. On-device OCR (Tesseract) identifies the ayah among all 6,214 and opens it in the player. The camera
   permission is only asked the first time. Measured: 118/120 degraded test verses, 8/11 crops of a
   Maghribi-script page, 0 false matches on non-Quran text (`OcrRegressionTest`).
 - **كتابي · Mon livre:** her book «أقرأ وأتعلم – المستوى الثاني», published by the Ministry of Habous. It

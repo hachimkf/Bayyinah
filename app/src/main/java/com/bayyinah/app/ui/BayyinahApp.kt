@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -56,10 +57,13 @@ fun BayyinahApp(vm: MainViewModel) {
                 // The camera is only bound while the scanner is shown (battery).
                 Screen.Scanner -> ScannerRoute(vm, state)
                 Screen.Settings -> SettingsScreen(vm, state, update)
+                // After a scan: full-screen player, camera closed.
+                Screen.Reader -> state.verse?.let { VerseSheet(vm = vm, state = state, verse = it, fullScreen = true) }
+                    ?: androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(com.bayyinah.app.ui.theme.Cream))
             }
         }
         AnimatedVisibility(
-            visible = state.verse != null,
+            visible = state.verse != null && state.screen != Screen.Reader,
             modifier = Modifier.align(Alignment.BottomCenter),
             enter = slideInVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) { it } + fadeIn(),
             exit = slideOutVertically(MaterialTheme.motionScheme.fastSpatialSpec()) { it } + fadeOut(),

@@ -50,7 +50,7 @@ sealed interface UpdateUi {
     data class Failed(val info: UpdateInfo) : UpdateUi
 }
 
-enum class Screen { Home, Scanner, Settings }
+enum class Screen { Home, Scanner, Reader, Settings }
 enum class ScanState { Loading, Idle, Scanning, NoMatch }
 
 /** Player sheet state (+ which screen is shown). */
@@ -165,9 +165,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
 
     // ---------------------------------------------------------------- navigation
 
+    /** Opens the camera and starts scanning automatically (no button to press). */
     fun openScanner() {
-        _state.update { it.copy(screen = Screen.Scanner, scanState = if (matcher != null && recognizer != null) ScanState.Idle else ScanState.Loading) }
+        player.pause()
+        _state.update { it.copy(screen = Screen.Scanner, verse = null, isPlaying = false, buffering = false, progress = 0f, scanState = ScanState.Scanning) }
         prepareScanner()
+        startAutoScan()
     }
 
     fun openSettings() = _state.update { it.copy(screen = Screen.Settings) }
@@ -176,6 +179,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
     fun backToHome(): Boolean {
         if (_state.value.screen == Screen.Home) return false
         scanJob?.cancel(); analyzer.cancel()
+        if (_state.value.screen == Screen.Reader) player.pause()
         _state.update { it.copy(screen = Screen.Home, torch = false) }
         return true
     }
@@ -204,26 +208,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         }
     }
 
-    fun scan() {
-        if (_state.value.scanState == ScanState.Loading || scanJob?.isActive == true) return
-        _state.update { it.copy(scanState = ScanState.Scanning) }
+    /**
+     * Continuous scanning while the scanner is open: every frame goes through the (fast) book
+     * matcher; the heavier OCR fallback runs only on every [OCR_EVERY]th frame to spare the battery.
+     * On a match the camera closes and the ayah plays in the full-screen reader.
+     */
+    private fun startAutoScan() {
+        scanJob?.cancel()
         scanJob = viewModelScope.launch {
-            var found: Verse? = null
-            // Several successive frames: the first may be blurry while autofocus settles.
-            for (attempt in 0 until SCAN_ATTEMPTS) {
-                if (attempt > 0) delay(200)
-                val frame = nextFrame() ?: continue
-                val id = withContext(ocrDispatcher) { recognizeFrame(frame) }
-                if (id != null) { found = repository.byId(id); break }
-            }
-            val verse = found
-            if (verse != null) {
-                showVerse(verse, autoplay = true)
-                _state.update { it.copy(scanState = ScanState.Idle) }
-            } else {
-                _state.update { it.copy(scanState = ScanState.NoMatch) }
-                delay(3000)
-                _state.update { if (it.scanState == ScanState.NoMatch) it.copy(scanState = ScanState.Idle) else it }
+            var n = 0
+            while (isActive && _state.value.screen == Screen.Scanner) {
+                val frame = nextFrame()
+                if (frame == null) { delay(300); continue }
+                val allowOcr = n % OCR_EVERY == OCR_EVERY - 1
+                val id = withContext(ocrDispatcher) { recognizeFrame(frame, allowOcr) }
+                n++
+                val verse = id?.let { repository.byId(it) }
+                if (verse != null && _state.value.screen == Screen.Scanner) {
+                    analyzer.cancel()
+                    _state.update { it.copy(screen = Screen.Reader, torch = false) }   // camera unbinds
+                    showVerse(verse, autoplay = true)
+                    break
+                }
+                delay(SCAN_INTERVAL_MS)
             }
         }
     }
@@ -232,7 +239,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
      * 1) Her book: compare the crop's printed lines with the book's own lines (fast, no OCR).
      * 2) Otherwise OCR the crop at each calibrated text size; stop early on a decisive pass.
      */
-    private fun recognizeFrame(frame: Bitmap): Int? {
+    private fun recognizeFrame(frame: Bitmap, allowOcr: Boolean = true): Int? {
         bookMatcher?.let { bm ->
             val w = frame.width; val h = frame.height
             val px = IntArray(w * h); frame.getPixels(px, 0, w, 0, 0, w, h)
@@ -242,8 +249,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
             if (com.bayyinah.app.BuildConfig.DEBUG) android.util.Log.d("BayyinahOcr", "book: $r in ${System.currentTimeMillis() - t0} ms")
             if (r != null && r.accepted) { frame.recycle(); return r.verseId }
         }
-        val ocr = recognizer ?: return null
-        val m = matcher ?: return null
+        val ocr = recognizer; val m = matcher
+        if (!allowOcr || ocr == null || m == null) { frame.recycle(); return null }
         val near = _state.value.verse?.id
         val variants = try { TextImagePrep.prepare(frame) } finally { frame.recycle() }
         val passes = ArrayList<List<VerseMatcher.Candidate>>(variants.size)
@@ -261,7 +268,27 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         return MatchDecider.decide(passes, near)
     }
 
+    /** Debug builds only: frames come from this image file instead of the camera. */
+    private var debugFrameFile: String? = null
+
+    fun debugScanFile(path: String) {
+        if (!com.bayyinah.app.BuildConfig.DEBUG) return
+        debugFrameFile = path
+        openScanner()
+    }
+
     private suspend fun nextFrame(): Bitmap? {
+        debugFrameFile?.let { path ->
+            return withContext(Dispatchers.IO) {
+                val src = android.graphics.BitmapFactory.decodeFile(path) ?: return@withContext null
+                Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888).also { gray ->
+                    android.graphics.Canvas(gray).drawBitmap(src, 0f, 0f, android.graphics.Paint().apply {
+                        colorFilter = android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix().apply { setSaturation(0f) })
+                    })
+                    src.recycle()
+                }
+            }
+        }
         val deferred = CompletableDeferred<Bitmap?>()
         analyzer.requestFrame { deferred.complete(it) }
         return withTimeoutOrNull(1500) { deferred.await() }.also { if (it == null) analyzer.cancel() }
@@ -486,7 +513,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         }
     }
 
+    /** Closes the player; from the full-screen reader this goes back to scanning. */
     fun dismissVerse() {
+        if (_state.value.screen == Screen.Reader) { openScanner(); return }
         player.pause()
         _state.update { it.copy(verse = null, isPlaying = false, buffering = false, progress = 0f) }
     }
@@ -531,7 +560,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         const val KEY_LAST_VERSE = "last_verse"
         const val KEY_RECITER = "reciter"
         const val KEY_AUTO_UPDATE = "auto_update"
-        const val SCAN_ATTEMPTS = 3
+        const val SCAN_INTERVAL_MS = 450L
+        /** OCR fallback on every 4th frame only (book matching runs on every frame). */
+        const val OCR_EVERY = 4
 
         fun toLatinDigits(s: String) = buildString {
             for (c in s) append(
