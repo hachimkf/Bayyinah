@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -61,14 +62,14 @@ import com.bayyinah.app.ui.theme.Jade
 import com.bayyinah.app.ui.theme.QuranFont
 import com.bayyinah.app.ui.theme.VerseTextStyle
 
-/** Deep green of the vignette around the lit frame. */
-private val Shade = Color(0xFF0B241A)
+/** White of the soft fade around the lit frame. */
+private val Shade = Color.White
 /** Paper of the illustrated page. */
 private val Paper = Color(0xFFF1F3EC)
 
 /** Home's own frame (taller than the camera's: it holds the title band and three lines). */
-private const val HOME_TOP = 0.24f
-private const val HOME_BOTTOM = 0.60f
+private const val HOME_TOP = 0.30f
+private const val HOME_BOTTOM = 0.55f
 
 /**
  * Home is the scan itself: a Mushaf page fills the screen, a dark green vignette leaves only the
@@ -87,8 +88,19 @@ fun ScanHomeScreen(vm: MainViewModel, state: UiState, update: UpdateUi, sample: 
         val frameTop = with(density) { frame.top.toDp() }
         val frameH = with(density) { frame.height().toDp() }
 
-        // The page: a surah title band and its ayat with numbered medallions, centred in the frame.
-        Box(Modifier.fillMaxWidth().offset(y = frameTop).height(frameH), contentAlignment = Alignment.Center) {
+        // The page. If a real Mushaf page was put on this phone (mushaf_home.jpg in the app's files,
+        // never shipped in the APK), it is shown centred on the frame; otherwise a drawn page.
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val real = remember {
+            java.io.File(context.filesDir, "mushaf_home.jpg").takeIf { it.exists() }
+                ?.let { android.graphics.BitmapFactory.decodeFile(it.path) }?.asImageBitmap()
+        }
+        if (real != null) Box(Modifier.fillMaxWidth().offset(y = frameTop).height(frameH), contentAlignment = Alignment.Center) {
+            Image(
+                real, null, contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+                modifier = Modifier.fillMaxWidth().wrapContentHeight(unbounded = true),
+            )
+        } else Box(Modifier.fillMaxWidth().offset(y = frameTop).height(frameH), contentAlignment = Alignment.Center) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -99,17 +111,9 @@ fun ScanHomeScreen(vm: MainViewModel, state: UiState, update: UpdateUi, sample: 
                 TitleBand("سورة الناس")
             }
         }
-        // Vignette: dark green above and below, the frame stays bright.
-        Box(
-            Modifier.fillMaxSize().background(
-                Brush.verticalGradient(
-                    0f to Shade, (HOME_TOP - 0.10f) to Shade.copy(alpha = 0.92f), (HOME_TOP - 0.02f) to Shade.copy(alpha = 0.55f),
-                    (HOME_TOP + 0.02f) to Shade.copy(alpha = 0f), (HOME_BOTTOM - 0.02f) to Shade.copy(alpha = 0f),
-                    (HOME_BOTTOM + 0.02f) to Shade.copy(alpha = 0.55f), (HOME_BOTTOM + 0.12f) to Shade.copy(alpha = 0.94f), 1f to Shade,
-                ),
-            ),
-        )
-        ScanFrame(frame, Modifier.fillMaxSize(), accent = Color(0xFFE6F7EA))
+        // Soft white fade above and below (smoothstep, wide): only the framed part stays clear.
+        Box(Modifier.fillMaxSize().background(remember { softFade(HOME_TOP, HOME_BOTTOM) }))
+        ScanFrame(frame, Modifier.fillMaxSize(), accent = Emerald)
 
         // Top: logo (the whole Mushaf) · settings — circles, no text.
         Row(
@@ -137,20 +141,36 @@ fun ScanHomeScreen(vm: MainViewModel, state: UiState, update: UpdateUi, sample: 
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding()
                 .padding(start = SidePad, end = SidePad, bottom = 28.dp),
         ) {
-            Text(stringResource(R.string.frame_hint), color = Cream.copy(alpha = 0.85f), fontSize = 17.sp, textAlign = TextAlign.Center)
+            Text(stringResource(R.string.frame_hint), color = Emerald, fontSize = 17.sp, textAlign = TextAlign.Center)
             Spacer(Modifier.height(18.dp))
             Button(
                 onClick = { vm.openScanner() },
-                colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = EmeraldDeep),
+                colors = ButtonDefaults.buttonColors(containerColor = EmeraldDeep, contentColor = Cream),
                 shape = CircleShape,
                 modifier = Modifier.fillMaxWidth().height(104.dp),
             ) {
-                Icon(AppIcons.Scan, null, Modifier.size(34.dp))
+                Icon(AppIcons.Scan, null, Modifier.size(34.dp), tint = Amber)
                 Spacer(Modifier.width(14.dp))
                 Text(stringResource(R.string.scan_big), fontSize = 26.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
+}
+
+/**
+ * White fade with many smoothstep stops: fully white at the screen edges, easing to clear over a
+ * long distance before the frame — no visible edge.
+ */
+private fun softFade(top: Float, bottom: Float): Brush {
+    fun ss(x: Float, e0: Float, e1: Float): Float { val t = ((x - e0) / (e1 - e0)).coerceIn(0f, 1f); return t * t * (3 - 2 * t) }
+    // e = distance outside the frame (negative inside). Quick first veil (to ~60 %) right at the
+    // frame edge, then a long gentle ease to full white.
+    fun a(y: Float): Float {
+        val e = if (y < (top + bottom) / 2) top - y else y - bottom
+        return 0.62f * ss(e, -0.012f, 0.05f) + 0.38f * ss(e, 0.05f, 0.20f)
+    }
+    val stops = (0..120).map { i -> val y = i / 120f; y to Shade.copy(alpha = a(y)) }.toTypedArray()
+    return Brush.verticalGradient(*stops)
 }
 
 /** A decorated surah title band (drawn, not copied from any Mushaf). */

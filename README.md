@@ -8,7 +8,7 @@ APK ≈ **7.5 MB** (scanner OCR included). Text, search and navigation work offl
 
 ## Using it
 
-- **Home is the scan:** a Mushaf-style page fills the screen with a dark green vignette, so only the framed part is lit, and a scan line sweeps. One huge «امسح الآية» button opens the camera (same frame, back and torch buttons).
+- **Home is the scan:** a Mushaf page fills the screen; a smooth white fade leaves only the framed surah (Al-Falaq) clear, and a scan line sweeps. The real scanned page is shown only if the file `mushaf_home.jpg` is in the app's files on the phone (it is never put in the APK or in this repo, the Mushaf scans being the Foundation's content); otherwise a drawn page is shown. One huge «امسح الآية» button opens the camera (same frame, back and torch buttons).
 - **Top circles (no text):** the app logo opens the whole Mushaf (index: quick jump, search, surah list; the heart there opens Saved), and the gear opens Settings.
 - The screen never turns off while the player is open or while scanning.
 - The interface is **Arabic only**, laid out right-to-left, with Latin digits (1, 2, 3) as used in Morocco.
