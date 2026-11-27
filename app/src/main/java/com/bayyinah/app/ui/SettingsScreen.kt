@@ -30,6 +30,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -95,8 +97,11 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
             val pickPack = androidx.activity.compose.rememberLauncherForActivityResult(
                 androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
             ) { uri -> if (uri != null) vm.importMushafPack(uri) }
-            Section(stringResource(R.string.settings_mushaf), color = Mint, content = EmeraldDeep) {
-                val installed = state.mushafLines != null
+            // Shown only while a pack is still missing; once both are in, the card disappears
+            // (no replace / delete buttons, so nothing can be removed by accident).
+            val textPack by vm.mushafText.collectAsStateWithLifecycle()
+            if (state.mushafLines == null || textPack == null) Section(stringResource(R.string.settings_mushaf), color = Mint, content = EmeraldDeep) {
+                val installed = false
                 Text(
                     stringResource(if (installed) R.string.settings_mushaf_ready else R.string.settings_mushaf_none),
                     fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
@@ -118,11 +123,6 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
                     shape = CircleShape, modifier = Modifier.fillMaxWidth().height(60.dp),
                 ) {
                     Text(stringResource(if (installed) R.string.settings_mushaf_replace else R.string.settings_mushaf_import), fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
-                if (installed) {
-                    androidx.compose.material3.TextButton(onClick = { vm.removeMushafPack() }, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.settings_mushaf_remove), color = EmeraldDeep)
-                    }
                 }
             }
 
