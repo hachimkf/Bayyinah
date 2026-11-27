@@ -51,7 +51,7 @@ sealed interface UpdateUi {
 }
 
 /** Home = the big scan page; Index, History and Settings are the other tabs of the floating bar. */
-enum class Screen { Home, Index, Scanner, Reader, Settings, History }
+enum class Screen { Home, Index, Scanner, Reader, Settings, History, Mushaf }
 /** Paused: no match for a while — scanning stops until she taps (no ayah ever starts by itself). */
 enum class ScanState { Loading, Idle, Scanning, NoMatch, Paused }
 
@@ -66,6 +66,8 @@ data class UiState(
     val autoUpdate: Boolean = true,
     /** Whole-Mushaf scanning: lines in the imported pack (null = no pack), and the last import outcome. */
     val mushafLines: Int? = null,
+    /** Read-only Mushaf: the printed page shown (2..639), remembered. */
+    val mushafPage: Int = 2,
     val mushafImport: MushafImport = MushafImport.Idle,
     val verse: Verse? = null,
     /** False when the chosen reciter has no timing for this ayah. */
@@ -146,6 +148,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
     private var bookMatcher: BookMatcher? = null
     /** Whole printed Mushaf, from a pack the user imported (Settings). */
     @Volatile private var mushafMatcher: com.bayyinah.app.book.MushafMatcher? = null
+
+    /** The Mushaf Mohammadi text + Moroccan font, when its private pack is imported. */
+    private val _mushafText = MutableStateFlow<com.bayyinah.app.book.MushafText?>(null)
+    val mushafText: StateFlow<com.bayyinah.app.book.MushafText?> = _mushafText.asStateFlow()
     private var scanJob: Job? = null
 
     init {
@@ -179,9 +185,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
             val pack = withContext(Dispatchers.IO) { com.bayyinah.app.book.MushafPackStore.load(getApplication()) }
             if (pack != null) useMushafPack(pack)
         }
+        viewModelScope.launch {
+            _mushafText.value = withContext(Dispatchers.IO) { com.bayyinah.app.book.MushafText.load(getApplication()) }
+        }
         viewModelScope.launch { queryFlow.debounce(250).collect { runSearch(it) } }
         val auto = prefs.getBoolean(KEY_AUTO_UPDATE, true)
-        _state.update { it.copy(autoUpdate = auto) }
+        _state.update { it.copy(autoUpdate = auto, mushafPage = prefs.getInt(KEY_MUSHAF_PAGE, 2)) }
         if (auto) checkForUpdates(force = false)
     }
 
@@ -244,10 +253,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         _state.update { it.copy(mushafLines = pack.lines.size) }
     }
 
-    /** Settings: install a `.bayyinah-pack` file the user picked. */
+    /** Settings: install a `.bayyinah-pack` file the user picked (scan pack, or the text + font pack). */
     fun importMushafPack(uri: android.net.Uri) {
         _state.update { it.copy(mushafImport = MushafImport.Working) }
         viewModelScope.launch {
+            val app = getApplication<Application>()
+            if (withContext(Dispatchers.IO) { com.bayyinah.app.book.MushafText.looksLikeTextPack(app, uri) }) {
+                val text = withContext(Dispatchers.IO) {
+                    try { com.bayyinah.app.book.MushafText.import(app, uri) }
+                    catch (e: Exception) { android.util.Log.w("Bayyinah", "Mushaf text import failed", e); null }
+                }
+                if (text != null) _mushafText.value = text
+                _state.update { it.copy(mushafImport = if (text != null) MushafImport.Done else MushafImport.Failed) }
+                return@launch
+            }
             val pack = withContext(Dispatchers.IO) {
                 try { com.bayyinah.app.book.MushafPackStore.import(getApplication(), uri) }
                 catch (e: Exception) { android.util.Log.w("Bayyinah", "Mushaf pack import failed", e); null }
@@ -530,6 +549,24 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         viewModelScope.launch { showVerse(verse, autoplay = true) }
     }
 
+    /** Read-only Mushaf: open it (at the last page read, or the page of the playing ayah). */
+    fun openMushaf() {
+        val page = _state.value.verse?.let { _mushafText.value?.pageOf(it.id) } ?: _state.value.mushafPage
+        player.pause()
+        _state.update { it.copy(screen = Screen.Mushaf, mushafPage = page, verse = null, isPlaying = false) }
+    }
+
+    fun setMushafPage(page: Int) {
+        if (page == _state.value.mushafPage) return
+        prefs.edit().putInt(KEY_MUSHAF_PAGE, page).apply()
+        _state.update { it.copy(mushafPage = page) }
+    }
+
+    /** Tap on a word in the Mushaf: play its ayah. */
+    fun playVerse(surah: Int, ayah: Int) {
+        viewModelScope.launch { repository.byRef(surah, ayah)?.let { showVerse(it, autoplay = true) } }
+    }
+
     // ---------------------------------------------------------------- app updates
 
     /** Background check (throttled) on start; [force] when she taps the logo. Silent when offline. */
@@ -677,6 +714,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         const val KEY_RECITER = "reciter"
         const val KEY_AUTO_UPDATE = "auto_update"
         const val KEY_FAVORITES = "favorites"
+        const val KEY_MUSHAF_PAGE = "mushaf_page"
         const val KEY_RECENT = "recent"
         const val MAX_RECENT = 30
         const val SCAN_INTERVAL_MS = 450L

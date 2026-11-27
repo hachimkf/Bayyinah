@@ -61,7 +61,7 @@ fun BayyinahApp(vm: MainViewModel) {
     // Index tab with a surah open: back closes the surah first.
     BackHandler(enabled = state.verse == null && state.screen == Screen.Index && index.openSurah != null) { vm.back() }
     // Saved is opened from the index: back returns there.
-    BackHandler(enabled = state.verse == null && state.screen == Screen.History) { vm.openIndex() }
+    BackHandler(enabled = state.verse == null && (state.screen == Screen.History || state.screen == Screen.Mushaf)) { vm.openIndex() }
     // Home: the first back swipe only shows a hint; a second one within 2 s leaves the app.
     var lastBack by remember { mutableLongStateOf(0L) }
     BackHandler(enabled = state.verse == null && state.screen == Screen.Home) {
@@ -90,6 +90,7 @@ fun BayyinahApp(vm: MainViewModel) {
                 Screen.Home -> ScanHomeScreen(vm, state, update, index.sample)
                 Screen.Index -> IndexScreen(vm, index, setupError = state.setupError)
                 Screen.History -> HistoryScreen(vm, index)
+                Screen.Mushaf -> MushafReaderScreen(vm, state)
                 // The camera is only bound while the scanner is shown (battery).
                 Screen.Scanner -> ScannerRoute(vm, state)
                 Screen.Settings -> SettingsScreen(vm, state, update)

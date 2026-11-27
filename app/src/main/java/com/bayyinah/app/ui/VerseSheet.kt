@@ -54,6 +54,7 @@ import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -149,9 +150,17 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Bool
                         .padding(horizontal = 18.dp, vertical = 14.dp),
                     contentAlignment = Alignment.Center,
                 ) {
+                    // The Mushaf Mohammadi's own Moroccan font and text when its pack is imported,
+                    // else the KFGQPC Warsh text.
+                    val mt by vm.mushafText.collectAsStateWithLifecycle()
+                    val moroccan = mt?.ayah(verse.id)
                     Text(
-                        verse.verseText,
-                        style = VerseTextStyle.copy(fontSize = fontSize, lineHeight = fontSize * 1.9f, textDirection = TextDirection.Rtl),
+                        moroccan ?: verse.verseText,
+                        style = VerseTextStyle.copy(
+                            fontFamily = if (moroccan != null) mt!!.font else VerseTextStyle.fontFamily,
+                            fontSize = if (moroccan != null) fontSize * 1.15f else fontSize,
+                            lineHeight = fontSize * 2.0f, textDirection = TextDirection.Rtl,
+                        ),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
                     )

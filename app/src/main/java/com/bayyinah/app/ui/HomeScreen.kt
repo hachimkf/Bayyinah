@@ -171,6 +171,7 @@ fun IndexScreen(vm: MainViewModel, index: IndexState, setupError: String?) {
             onBack = { keyboard?.hide(); vm.back() },
             onHome = { keyboard?.hide(); vm.backToHome() },
             onSaved = { keyboard?.hide(); vm.openHistory() },
+            onMushaf = { keyboard?.hide(); vm.openMushaf() },
         )
     }
 
@@ -187,7 +188,7 @@ val TopFade = Brush.verticalGradient(
 )
 
 @Composable
-private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBack: () -> Unit, onHome: () -> Unit, onSaved: () -> Unit) {
+private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBack: () -> Unit, onHome: () -> Unit, onSaved: () -> Unit, onMushaf: () -> Unit) {
     Box(Modifier.fillMaxWidth().background(TopFade).statusBarsPadding().height(TopBarHeight + FadeTail)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -208,6 +209,8 @@ private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBa
                 RoundIconButton(AppIcons.Back, stringResource(R.string.cd_back), onHome)
                 Text(stringResource(R.string.index_title), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = EmeraldDeep,
                     textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                RoundIconButton(AppIcons.Book, stringResource(R.string.mushaf_title), onMushaf)
+                Spacer(Modifier.width(8.dp))
                 RoundIconButton(AppIcons.Heart, stringResource(R.string.cd_history), onSaved)
             }
         }

@@ -121,6 +121,8 @@
     <string name="scan_big">امسح الآية</string>
     <string name="scan_paused">توقف المسح</string>
     <string name="scan_paused_sub">اضغط على الإطار لمتابعة المسح</string>
+    <string name="mushaf_title">المصحف</string>
+    <string name="mushaf_needs_pack">لعرض المصحف بالخط المغربي، استورد حزمة نص المصحف من الإعدادات.</string>
     <string name="back_again">اسحب مرة أخرى للخروج</string>
     <string name="setup_error">تعذّر فتح المصحف. أعد تشغيل التطبيق.</string>
 </resources>
