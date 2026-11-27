@@ -6,8 +6,8 @@ plugins {
 }
 
 // ── Release version: bump BOTH before every GitHub release (tools/release.sh reads them). ──
-val appVersionCode = 8
-val appVersionName = "1.4.1"
+val appVersionCode = 9
+val appVersionName = "1.5.0"
 
 /** GitHub repo whose Releases the in-app updater checks ("owner/name"). */
 val updateRepo = "hachimkf/Bayyinah"
