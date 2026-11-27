@@ -99,8 +99,8 @@ class Index:
         H = lum.shape[0]
         strips = query_strips(lum, self.tmpl)
         groups = {}
-        for base, Pc, q in strips:
-            groups.setdefault(Pc, []).append((base, q))
+        for base, Pc, q, cx0 in strips:
+            groups.setdefault(Pc, []).append((base, q, cx0))
         if not groups: return None
         P1 = sorted(groups)[len(groups) // 2]          # the fitted pitch (middle of SCALES)
 
@@ -134,19 +134,31 @@ class Index:
             for i in anchors:
                 fs = [self.fine(C, idx[i], q) for (kk, C, g), idx, q in zip(use, shifted, qs)]
                 widths = [(q if q is not None else g[1]).shape[1] for (kk, C, g), q in zip(use, qs)]
-                cands.append((float(np.mean([f[0] for f in fs])), int(i), fs, [idx[i] for idx in shifted], widths))
+                qq = [q if q is not None else g[1] for (kk, C, g), q in zip(use, qs)]
+                cands.append((float(np.mean([f[0] for f in fs])), int(i), fs, [idx[i] for idx in shifted], widths, qq, Pc))
         cands.sort(key=lambda c: -c[0])
-        v, i, fs, refs_i, widths = cands[0]
+        v, i, fs, refs_i, widths, qq, Pbest = cands[0]
         L0 = self.lines[i]
         second = next((c[0] for c in cands[1:] if abs(c[1] - i) > 2 or self.lines[c[1]]['page'] != L0['page']), 0.0)
         mid = len(use) // 2; r = refs_i[mid]
         if r < 0: r = i; mid = 0
         L = self.lines[r]; off = fs[mid][1]; qw = int(widths[mid] * self.rows / 20 * self.colscale)
         sp = max(L['spans'], key=lambda t: max(0, min(t[3], off + qw) - max(t[2], off)))
-        return dict(score=v, margin=float(v - second), page=L['page'], line=L['line'], surah=sp[0], ayah=sp[1], nlines=len(use))
+        # text-likeness features (for the accept rule)
+        q10 = quantize(qq[mid], self.rows, 8, self.colscale); rr = self.refs[r]
+        a0 = max(0, off); a1 = min(rr.shape[1], off + q10.shape[1])
+        dens = float(q10[:, a0 - off:a1 - off].mean() / max(1e-6, rr[:, a0:a1].mean())) if a1 > a0 else 0.0
+        # alignment: Mushaf lines are justified, so every crop line must sit at the same page x
+        # (ref column of the crop's left edge = off − cx0·rows/pitch, in reference columns)
+        lefts = [f[1] - g[2] * self.rows / Pbest for (kk, C, g), f, ri in zip(use, fs, refs_i)
+                 if ri >= 0 and self.refs[ri].shape[1] >= 0.9 * max(self.refs[x].shape[1] for x in refs_i if x >= 0)]
+        spread = float(max(lefts) - min(lefts)) if len(lefts) >= 2 else -1.0
+        return dict(score=v, margin=float(v - second), page=L['page'], line=L['line'], surah=sp[0], ayah=sp[1], nlines=len(use),
+                    fit=LAST_FIT[0], lmin=float(min(f[0] for f in fs)), dens=dens, spread=spread)
 
 
 SCALES = (0.96, 1.0, 1.04)
+LAST_FIT = [0.0]
 
 
 def query_strips(lum, tmpl):
@@ -155,7 +167,7 @@ def query_strips(lum, tmpl):
     H = ink.shape[0]
     r = mp.fit_pitch(ink, tmpl, 24, 200)
     if r is None or r[0] is None: return []
-    P0, ph, _ = r
+    P0, ph, LAST_FIT[0] = r
     prof = fp.smooth(ink.sum(1).astype(float), max(3, int(P0) // 4))
     out = []
     for f in SCALES:
@@ -165,7 +177,7 @@ def query_strips(lum, tmpl):
             a, b = int(max(0, y - P / 8)), int(min(H, y + P / 8 + 1))
             base = a + int(np.argmax(prof[a:b])) if b > a else int(y)
             st, cx0, s = fp.strip(ink, base, P)
-            if st is not None and st.shape[1] >= 20: out.append((base, round(P, 2), st))
+            if st is not None and st.shape[1] >= 20: out.append((base, round(P, 2), st, cx0))
             y += P
         # phase may start below the first line: also look one pitch above
     return out
@@ -196,6 +208,15 @@ def evaluate(args, labels):
         return pool.map(_one, labels, chunksize=2)
 
 
+def accept(d):
+    """Accept rule (same as MushafMatcher.Result.accepted): text-likeness + a clear winner.
+    Tuned on 1,350 camera-like crops without Mushaf text + 100 of the Mushaf's non-Quran pages (0 accepted)."""
+    if d is None or not (0.6 <= d['dens'] <= 2.0): return False
+    if d['nlines'] >= 2 and d['spread'] >= 0:      # several lines: they must line up (justified text)
+        return d['score'] >= 0.54 and d['margin'] >= 0.04 and d['fit'] >= 0.70 and d['spread'] <= 8
+    return d['score'] >= 0.60 and d['margin'] >= 0.12 and d['fit'] >= 0.80 and 0.85 <= d['dens'] <= 1.6
+
+
 def summarize(res, min_score, min_margin):
     tp = wrong = rej = nfp = ayah_ok = 0
     for L, d, _ in res:
@@ -216,6 +237,8 @@ if __name__ == "__main__":
     a = ap.parse_args()
     labels = json.load(open('book-source/mushaf-crops/labels.json'))
     if a.n: labels = labels[:a.n] + [L for L in labels if L['page'] == 0][:a.n // 3]
+    only = __import__('os').environ.get('ONLY')
+    if only: labels = [L for L in labels if L['file'].startswith(only)]
     res = evaluate((a.rows, a.bits, a.colscale), labels)
     pickle.dump(res, open(f'book-source/mushaf-fp/res_r{a.rows}_b{a.bits}_c{a.colscale}.pkl', 'wb'))
     print(f"mean {np.mean([r[2] for r in res]):.2f}s per crop")

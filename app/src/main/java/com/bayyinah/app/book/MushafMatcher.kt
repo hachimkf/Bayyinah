@@ -27,19 +27,37 @@ class MushafMatcher(private val pack: MushafPack) {
     data class Result(
         val pdfPage: Int, val page: Int, val line: Int, val surah: Int, val ayah: Int,
         val score: Float, val margin: Float, val lines: Int,
+        /** How well the crop's rows fit the Mushaf's line pattern (0..1). */
+        val fit: Float,
+        /** Ink in the crop's middle line ÷ ink in the matched Mushaf line, over the matched columns. */
+        val density: Float,
+        /** Horizontal disagreement (reference columns) between the crop's lines; -1 with one line. */
+        val spread: Float,
     ) {
         val verseId get() = surah * 1000 + ayah
-        val accepted get() = score >= MIN_SCORE && margin >= MIN_MARGIN
+
+        /**
+         * Text-likeness + clear winner. Tuned on 1,350 camera-like crops of scenes without Mushaf text
+         * (rooms, walls, faces, screens, stripes, her book's lesson pages) + 100 of the Mushaf's own
+         * non-Quran pages: 0 accepted, 221/300 Mushaf crops recognised (tools/mushaf/mushaf_matcher.py ACCEPT).
+         */
+        val accepted: Boolean get() {
+            if (density !in 0.6f..2.0f) return false
+            return if (lines >= 2 && spread >= 0f)
+                score >= 0.54f && margin >= 0.04f && fit >= 0.70f && spread <= 8f        // lines must align: justified text
+            else
+                score >= 0.60f && margin >= 0.12f && fit >= 0.80f && density in 0.85f..1.6f   // one line: weaker evidence
+        }
     }
 
-    private class QLine(val base: Int, val strip: FloatArray, val w: Int)   // 20-row query strip
+    private class QLine(val base: Int, val strip: FloatArray, val w: Int, val cx0: Int)   // 20-row query strip
 
     private class Coarse(val best: FloatArray, val bestT: IntArray, val qs: FloatArray, val qw: Int)
 
     /** [lum] grayscale 0..255, row-major [w]×[h]. Null when no text line was found. */
     fun match(lum: IntArray, w: Int, h: Int): Result? {
         val ink = BookMatcher.deskew(BookMatcher.removeRules(TextImagePrep.binarize(lum, w, h), w, h), w, h)
-        val groups = queryLines(ink, w, h)
+        val (groups, fit) = queryLines(ink, w, h)
         if (groups.isEmpty()) return null
         val keys = groups.keys.sorted()
         val p1 = keys[keys.size / 2]
@@ -72,7 +90,8 @@ class MushafMatcher(private val pack: MushafPack) {
         val anchors = (0 until n).sortedByDescending { a[it] }.take(TOP_K)
 
         // Fine scoring of the anchors at each scale (same lines, matched by baseline).
-        class Cand(val score: Double, val i: Int, val fine: List<Pair<Float, Int>>, val refs: List<Int>, val widths: List<Int>)
+        class Cand(val score: Double, val i: Int, val fine: List<Pair<Float, Int>>, val refs: List<Int>, val widths: List<Int>,
+                   val qs: List<Pair<FloatArray, Int>>, val pitch: Double)
         val cands = ArrayList<Cand>()
         for (pc in groups.keys) {
             val other = fullLines(pc)
@@ -83,7 +102,7 @@ class MushafMatcher(private val pack: MushafPack) {
             val widths = use.mapIndexed { j, (_, _, q) -> if (pc == p1) q.w else other.minBy { kotlin.math.abs(it.base - q.base) }.w }
             for (i in anchors) {
                 val fs = use.indices.map { j -> fine(use[j].second, shifted[j][i], qs[j].first, qs[j].second) }
-                cands += Cand(fs.map { it.first.toDouble() }.average(), i, fs, shifted.map { it[i] }, widths)
+                cands += Cand(fs.map { it.first.toDouble() }.average(), i, fs, shifted.map { it[i] }, widths, qs, pc)
             }
         }
         val sorted = cands.sortedByDescending { it.score }
@@ -97,14 +116,31 @@ class MushafMatcher(private val pack: MushafPack) {
         val off = best.fine[mid].second
         val qw = (best.widths[mid] * pack.rows / 20.0).toInt()
         val sp = l.spans.maxByOrNull { max(0, min(it.x1, off + qw) - max(it.x0, off)) } ?: return null
-        return Result(l.pdfPage, pack.printedPage(l.pdfPage), l.lineNo, sp.surah, sp.ayah, best.score.toFloat(), (best.score - second).toFloat(), use.size)
+
+        // ink density of the middle line against the matched reference columns
+        val (q10, q10w) = best.qs[mid]; val rr = pack.strip(r); val rw = l.w; val rows = pack.rows
+        val a0 = max(0, off); val a1 = min(rw, off + q10w)
+        var density = 0.0
+        if (a1 > a0) {
+            var qsum = 0.0; var rsum = 0.0
+            for (y in 0 until rows) for (x in a0 until a1) { qsum += q10[y * q10w + x - off]; rsum += rr[y * rw + x] }
+            val cnt = rows.toDouble() * (a1 - a0)
+            density = (qsum / cnt) / max(1e-6, rsum / cnt)
+        }
+        // alignment: Mushaf lines are justified, so every crop line must sit at the same page x
+        val maxW = best.refs.filter { it >= 0 }.maxOfOrNull { pack.lines[it].w } ?: 0
+        val lefts = use.indices.filter { j -> best.refs[j] >= 0 && pack.lines[best.refs[j]].w >= 0.9 * maxW }
+            .map { j -> best.fine[j].second - use[j].third.cx0 * rows / best.pitch }
+        val spread = if (lefts.size >= 2) lefts.max() - lefts.min() else -1.0
+        return Result(l.pdfPage, pack.printedPage(l.pdfPage), l.lineNo, sp.surah, sp.ayah, best.score.toFloat(), (best.score - second).toFloat(),
+            use.size, fit.toFloat(), density.toFloat(), spread.toFloat())
     }
 
     // ---------------------------------------------------------------- query lines
 
-    private fun queryLines(ink: BooleanArray, w: Int, h: Int): Map<Double, List<QLine>> {
+    private fun queryLines(ink: BooleanArray, w: Int, h: Int): Pair<Map<Double, List<QLine>>, Double> {
         val prof = DoubleArray(h) { y -> var c = 0; for (x in 0 until w) if (ink[y * w + x]) c++; c.toDouble() }
-        val (p0, ph) = fitPitch(prof, pack.template, 24.0, 200.0) ?: return emptyMap()
+        val (p0, ph, fit) = fitPitch(prof, pack.template, 24.0, 200.0) ?: return emptyMap<Double, List<QLine>>() to 0.0
         val sm = smooth(prof, max(3, p0.toInt() / 4))
         val out = LinkedHashMap<Double, MutableList<QLine>>()
         for (f in SCALES) {
@@ -115,11 +151,11 @@ class MushafMatcher(private val pack: MushafPack) {
                 val a = max(0.0, y - p / 8).toInt(); val b = min(h.toDouble(), y + p / 8 + 1).toInt()
                 var base = y.toInt()
                 if (b > a) { base = a; for (k in a until b) if (sm[k] > sm[base]) base = k }
-                strip(ink, w, h, base, p)?.let { (st, sw) -> if (sw >= 20) out.getOrPut(key) { ArrayList() } += QLine(base, st, sw) }
+                strip(ink, w, h, base, p)?.let { (st, sw, cx0) -> if (sw >= 20) out.getOrPut(key) { ArrayList() } += QLine(base, st, sw, cx0) }
                 y += p
             }
         }
-        return out
+        return out to fit
     }
 
     // ---------------------------------------------------------------- matching
@@ -199,8 +235,6 @@ class MushafMatcher(private val pack: MushafPack) {
     }
 
     companion object {
-        const val MIN_SCORE = 0.54f
-        const val MIN_MARGIN = 0.04f
         private const val TOP_K = 40
         private const val MAX_LINES = 3
         private val SCALES = doubleArrayOf(0.96, 1.0, 1.04)
@@ -214,7 +248,7 @@ class MushafMatcher(private val pack: MushafPack) {
         }
 
         /** Best (pitch, phase of a baseline) fitting the periodic one-line template to the row profile. */
-        internal fun fitPitch(prof: DoubleArray, tmpl: FloatArray, lo: Double, hi: Double): Pair<Double, Double>? {
+        internal fun fitPitch(prof: DoubleArray, tmpl: FloatArray, lo: Double, hi: Double): Triple<Double, Double, Double>? {
             val h = prof.size
             if ((prof.maxOrNull() ?: 0.0) == 0.0) return null
             val mean = prof.average()
@@ -247,7 +281,7 @@ class MushafMatcher(private val pack: MushafPack) {
                 }
                 p += 1.0
             }
-            return if (bestP > 0) bestP to bestPh else null
+            return if (bestP > 0) Triple(bestP, bestPh, bestV) else null
         }
 
         private fun smooth(v: DoubleArray, win: Int): DoubleArray {
@@ -259,7 +293,7 @@ class MushafMatcher(private val pack: MushafPack) {
         }
 
         /** Strip of the line with baseline [base] at fractional [pitch]: 20 rows, scale-normalized. */
-        internal fun strip(ink: BooleanArray, w: Int, h: Int, base: Int, pitch: Double): Pair<FloatArray, Int>? {
+        internal fun strip(ink: BooleanArray, w: Int, h: Int, base: Int, pitch: Double): Triple<FloatArray, Int, Int>? {
             val top = round(base - UPP * pitch).toInt(); val bot = round(base + DOWNP * pitch).toInt()
             val sh = bot - top
             if (sh <= 0) return null
@@ -271,7 +305,7 @@ class MushafMatcher(private val pack: MushafPack) {
             val ow = max(4, round(sw * (NB.toDouble() / sh)).toInt())
             val sub = FloatArray(sh * sw)
             for (yy in 0 until sh) { val y = top + yy; if (y in 0 until h) for (xx in 0 until sw) if (ink[y * w + cx0 + xx]) sub[yy * sw + xx] = 1f }
-            return resizeBox(sub, sh, sw, NB, ow) to ow
+            return Triple(resizeBox(sub, sh, sw, NB, ow), ow, cx0)
         }
 
         /** Area-average resize (same index rounding as bookfp.resize_box). */
