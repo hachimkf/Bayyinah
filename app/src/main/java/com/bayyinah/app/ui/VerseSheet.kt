@@ -164,8 +164,8 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Bool
                 state.audioError -> Notice(stringResource(R.string.audio_offline), action = stringResource(R.string.retry), onAction = vm::retryAudio)
                 else -> LinearWavyProgressIndicator(
                     progress = { state.progress },
-                    color = Emerald,
-                    trackColor = Parchment,
+                    color = Amber,
+                    trackColor = Amber.copy(alpha = 0.30f),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).height(14.dp),
                 )
             }
@@ -343,9 +343,9 @@ private fun PlayButton(playing: Boolean, buffering: Boolean, enabled: Boolean, o
             label = "playIcon",
         ) { p ->
             when (p) {
-                2 -> LoadingIndicator(color = Amber, modifier = Modifier.size(60.dp)) // fetching the ayah
-                1 -> Icon(AppIcons.Pause, null, tint = Amber, modifier = Modifier.size(52.dp))
-                else -> Icon(AppIcons.Play, null, tint = Amber, modifier = Modifier.size(52.dp))
+                2 -> LoadingIndicator(color = Cream, modifier = Modifier.size(60.dp)) // fetching the ayah
+                1 -> Icon(AppIcons.Pause, null, tint = Cream, modifier = Modifier.size(52.dp))
+                else -> Icon(AppIcons.Play, null, tint = Cream, modifier = Modifier.size(52.dp))
             }
         }
     }
@@ -358,7 +358,7 @@ private fun RepeatButton(active: Boolean, onClick: () -> Unit) {
     val morph = remember { Morph(MaterialShapes.Cookie4Sided, MaterialShapes.Sunny) }
     val progress by animateFloatAsState(if (active) 1f else 0f, MaterialTheme.motionScheme.defaultSpatialSpec(), label = "rMorph")
     val container by animateColorAsState(if (active) Amber else Parchment, label = "rBg")
-    val content by animateColorAsState(if (active) Color.White else AmberDeep, label = "rFg")
+    val content by animateColorAsState(if (active) Color.White else Amber, label = "rFg")
     val shape = MorphShape(morph, progress)
     val desc = stringResource(R.string.cd_repeat)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {

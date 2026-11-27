@@ -1,11 +1,8 @@
 package com.bayyinah.app.ui
 
-import android.graphics.RectF
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,8 +25,6 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +35,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -54,54 +50,36 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bayyinah.app.R
 import com.bayyinah.app.data.Verse
-import com.bayyinah.app.ui.theme.Amber
-import com.bayyinah.app.ui.theme.Cream
 import com.bayyinah.app.ui.theme.Emerald
-import com.bayyinah.app.ui.theme.EmeraldDeep
-import com.bayyinah.app.ui.theme.Jade
-import com.bayyinah.app.ui.theme.QuranFont
 import com.bayyinah.app.ui.theme.VerseTextStyle
 
-/** White of the soft fade around the lit frame. */
-private val Shade = Color.White
-/** Paper of the illustrated page. */
-private val Paper = Color(0xFFF1F3EC)
-
-/** Home's own frame (taller than the camera's: it holds the title band and three lines). */
-private const val HOME_TOP = 0.30f
-private const val HOME_BOTTOM = 0.55f
-
 /**
- * Home is the scan itself: a Mushaf page fills the screen, a dark green vignette leaves only the
- * framed part lit, the scan line sweeps, and one huge button opens the camera.
- * Top: the app logo (opens the whole Mushaf: index of surahs) and settings, as circles.
+ * Home, exactly as in the design (app ui home and scan pages.svg): a Mushaf page under a white
+ * fade that leaves the frame clear, dark green brackets and scan line, two mint circles at the top
+ * (app logo → the whole Mushaf, gear → settings) and a big mint pill that opens the camera.
  */
 @Composable
 fun ScanHomeScreen(vm: MainViewModel, state: UiState, update: UpdateUi, sample: List<Verse>) {
-    BoxWithConstraints(
-        Modifier.fillMaxSize().background(Paper)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { vm.openScanner() },
-    ) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(com.bayyinah.app.ui.theme.Cream)) {
         val density = LocalDensity.current
         val w = constraints.maxWidth.toFloat(); val h = constraints.maxHeight.toFloat()
-        val frame = remember(w, h) { RectF(w * 0.05f, h * HOME_TOP, w * 0.95f, h * HOME_BOTTOM) }
+        val frame = remember(w, h) { scanFrame(w, h) }
         val frameTop = with(density) { frame.top.toDp() }
         val frameH = with(density) { frame.height().toDp() }
+        val hDp = with(density) { h.toDp() }; val wDp = with(density) { w.toDp() }
 
-        // The page. If a real Mushaf page was put on this phone (mushaf_home.jpg in the app's files,
-        // never shipped in the APK), it is shown centred on the frame; otherwise a drawn page.
-        val context = androidx.compose.ui.platform.LocalContext.current
+        // The page. A real Mushaf page is shown only if it was put on this phone
+        // (files/mushaf_home.jpg — never in the APK); otherwise a drawn page.
+        val context = LocalContext.current
         val real = remember {
             java.io.File(context.filesDir, "mushaf_home.jpg").takeIf { it.exists() }
                 ?.let { android.graphics.BitmapFactory.decodeFile(it.path) }?.asImageBitmap()
         }
-        if (real != null) Box(Modifier.fillMaxWidth().offset(y = frameTop).height(frameH), contentAlignment = Alignment.Center) {
-            Image(
-                real, null, contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
-                modifier = Modifier.fillMaxWidth().wrapContentHeight(unbounded = true),
-            )
-        } else Box(Modifier.fillMaxWidth().offset(y = frameTop).height(frameH), contentAlignment = Alignment.Center) {
-            Column(
+        Box(Modifier.fillMaxWidth().offset(y = frameTop).height(frameH), contentAlignment = Alignment.Center) {
+            if (real != null) {
+                // shifted up a little so the surah's ayat (not its title band) sit in the clear strip at the line
+                Image(real, null, contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().wrapContentHeight(unbounded = true).offset(y = -hDp * 0.06f))
+            } else Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth().wrapContentHeight(unbounded = true).padding(horizontal = 34.dp),
@@ -111,66 +89,55 @@ fun ScanHomeScreen(vm: MainViewModel, state: UiState, update: UpdateUi, sample: 
                 TitleBand("سورة الناس")
             }
         }
-        // Soft white fade above and below (smoothstep, wide): only the framed part stays clear.
-        Box(Modifier.fillMaxSize().background(remember { softFade(HOME_TOP, HOME_BOTTOM) }))
-        ScanFrame(frame, Modifier.fillMaxSize(), accent = Emerald)
+        // The design's white fade (its exact stops), clear around the scan line.
+        Box(Modifier.fillMaxSize().background(HomeFade))
+        ScanFrame(frame, Modifier.fillMaxSize(), accent = ScanLine, line = ScanLine, beamTop = ScanLine.copy(alpha = 0.30f))
 
-        // Top: logo (the whole Mushaf) · settings — circles, no text.
+        // Top: two mint circles — the app logo (the whole Mushaf) and settings.
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = SidePad, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = wDp * 0.074f, vertical = 12.dp),
         ) {
-            Surface(onClick = { vm.openIndex() }, shape = CircleShape, color = Jade, modifier = Modifier.size(60.dp)) {
+            Surface(onClick = { vm.openIndex() }, shape = CircleShape, color = ScanMint, modifier = Modifier.size(52.dp)) {
                 Box(contentAlignment = Alignment.Center) {
-                    Image(painterResource(R.drawable.app_logo), stringResource(R.string.nav_index), Modifier.size(46.dp).clip(CircleShape))
+                    Image(painterResource(R.drawable.app_logo), stringResource(R.string.nav_index), Modifier.size(40.dp).clip(CircleShape))
                 }
             }
             Spacer(Modifier.weight(1f))
-            IconButton(
-                onClick = { vm.openSettings() }, modifier = Modifier.size(60.dp),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = Jade, contentColor = EmeraldDeep),
-            ) { Icon(AppIcons.Settings, stringResource(R.string.cd_settings), Modifier.size(28.dp)) }
+            Surface(onClick = { vm.openSettings() }, shape = CircleShape, color = ScanMint, contentColor = com.bayyinah.app.ui.theme.EmeraldDeep, modifier = Modifier.size(52.dp)) {
+                Box(contentAlignment = Alignment.Center) { Icon(AppIcons.Settings, stringResource(R.string.cd_settings), Modifier.size(26.dp)) }
+            }
         }
         if (update != UpdateUi.Hidden) {
-            Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 84.dp, start = SidePad, end = SidePad)) { UpdateBanner(update, vm) }
+            Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 80.dp, start = SidePad, end = SidePad)) { UpdateBanner(update, vm) }
         }
 
-        // The huge button.
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding()
-                .padding(start = SidePad, end = SidePad, bottom = 28.dp),
+        // The big mint pill (design: 82 % wide, 12 % of the height, near the bottom).
+        Button(
+            onClick = { vm.openScanner() },
+            colors = ButtonDefaults.buttonColors(containerColor = com.bayyinah.app.ui.theme.EmeraldDeep, contentColor = com.bayyinah.app.ui.theme.Cream),
+            shape = CircleShape,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = hDp * 0.0457f)
+                .width(wDp * 0.823f).height(hDp * 0.119f),
         ) {
-            Text(stringResource(R.string.frame_hint), color = Emerald, fontSize = 17.sp, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(18.dp))
-            Button(
-                onClick = { vm.openScanner() },
-                colors = ButtonDefaults.buttonColors(containerColor = EmeraldDeep, contentColor = Cream),
-                shape = CircleShape,
-                modifier = Modifier.fillMaxWidth().height(104.dp),
-            ) {
-                Icon(AppIcons.Scan, null, Modifier.size(34.dp), tint = Amber)
-                Spacer(Modifier.width(14.dp))
-                Text(stringResource(R.string.scan_big), fontSize = 26.sp, fontWeight = FontWeight.Bold)
-            }
+            Icon(AppIcons.Scan, null, Modifier.size(32.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(stringResource(R.string.scan_big), fontSize = 24.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
-/**
- * White fade with many smoothstep stops: fully white at the screen edges, easing to clear over a
- * long distance before the frame — no visible edge.
- */
-private fun softFade(top: Float, bottom: Float): Brush {
-    fun ss(x: Float, e0: Float, e1: Float): Float { val t = ((x - e0) / (e1 - e0)).coerceIn(0f, 1f); return t * t * (3 - 2 * t) }
-    // e = distance outside the frame (negative inside). Quick first veil (to ~60 %) right at the
-    // frame edge, then a long gentle ease to full white.
-    fun a(y: Float): Float {
-        val e = if (y < (top + bottom) / 2) top - y else y - bottom
-        return 0.62f * ss(e, -0.012f, 0.05f) + 0.38f * ss(e, 0.05f, 0.20f)
-    }
-    val stops = (0..120).map { i -> val y = i / 120f; y to Shade.copy(alpha = a(y)) }.toTypedArray()
-    return Brush.verticalGradient(*stops)
+/** linear-gradient in the design: y from 0.86 % to 97.2 % of the screen, white, clear at its middle. */
+private val HomeFade: Brush = run {
+    val y0 = 0.0086f; val span = 0.9631f
+    val stops = listOf(
+        .08f to 1f, .13f to .98f, .18f to .93f, .23f to .84f, .29f to .72f, .34f to .56f, .40f to .36f, .46f to .14f,
+        .49f to 0f, .52f to .18f, .55f to .37f, .59f to .54f, .63f to .68f, .67f to .80f, .71f to .89f, .76f to .95f,
+        .81f to .99f, .88f to 1f,
+    )
+    val pts = listOf(0f to com.bayyinah.app.ui.theme.Cream) +
+        stops.map { (o, a) -> (y0 + o * span) to com.bayyinah.app.ui.theme.Cream.copy(alpha = a) } + listOf(1f to com.bayyinah.app.ui.theme.Cream)
+    Brush.verticalGradient(*pts.toTypedArray())
 }
 
 /** A decorated surah title band (drawn, not copied from any Mushaf). */
@@ -184,7 +151,7 @@ private fun TitleBand(title: String) {
     ) { Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3F4F44)) }
 }
 
-/** The ayat as one justified block with a small numbered medallion after each, like a Mushaf line. */
+/** The ayat as one block with a small numbered medallion after each, like a Mushaf line. */
 @Composable
 private fun PageText(verses: List<Verse>) {
     val text = buildAnnotatedString {
@@ -207,11 +174,13 @@ private fun PageText(verses: List<Verse>) {
     )
 }
 
-/** Round torch toggle for the camera page (lime when on). */
+/** Mint torch circle with a white icon (camera page). */
 @Composable
 fun TorchButton(on: Boolean, onClick: () -> Unit) {
-    IconButton(
-        onClick = onClick, modifier = Modifier.size(60.dp),
-        colors = IconButtonDefaults.iconButtonColors(containerColor = if (on) Amber else Jade, contentColor = EmeraldDeep),
-    ) { Icon(if (on) AppIcons.FlashOn else AppIcons.FlashOff, stringResource(R.string.cd_torch), Modifier.size(28.dp)) }
+    Surface(onClick = onClick, shape = CircleShape, color = if (on) com.bayyinah.app.ui.theme.Amber else ScanMint,
+        contentColor = com.bayyinah.app.ui.theme.EmeraldDeep, modifier = Modifier.size(52.dp)) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(if (on) AppIcons.FlashOn else AppIcons.FlashOff, stringResource(R.string.cd_torch), Modifier.size(26.dp))
+        }
+    }
 }

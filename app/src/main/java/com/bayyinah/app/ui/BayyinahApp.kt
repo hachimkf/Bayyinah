@@ -50,8 +50,8 @@ fun BayyinahApp(vm: MainViewModel) {
         (view.context as? Activity)?.window?.let {
             WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = state.screen != Screen.Scanner
         }
-        // Never let the screen sleep while she follows an ayah (player open) or scans.
-        view.keepScreenOn = state.verse != null || state.screen == Screen.Scanner
+        // The screen stays awake only while an ayah plays or the player is open — never while idle.
+        view.keepScreenOn = state.isPlaying || state.buffering || state.verse != null
     }
     LaunchedEffect(state.verse?.id) {
         if (state.verse != null) haptics.performHapticFeedback(HapticFeedbackType.Confirm)

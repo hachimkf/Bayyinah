@@ -52,7 +52,8 @@ sealed interface UpdateUi {
 
 /** Home = the big scan page; Index, History and Settings are the other tabs of the floating bar. */
 enum class Screen { Home, Index, Scanner, Reader, Settings, History }
-enum class ScanState { Loading, Idle, Scanning, NoMatch }
+/** Paused: no match for a while — scanning stops until she taps (no ayah ever starts by itself). */
+enum class ScanState { Loading, Idle, Scanning, NoMatch, Paused }
 
 /** Player sheet state (+ which screen is shown). */
 enum class MushafImport { Idle, Working, Done, Failed }
@@ -288,12 +289,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         scanJob?.cancel()
         scanJob = viewModelScope.launch {
             var n = 0
+            var ocrCandidate: Int? = null
+            val started = System.currentTimeMillis()
+            _state.update { it.copy(scanState = ScanState.Scanning) }
             while (isActive && _state.value.screen == Screen.Scanner) {
+                // Never scan forever: after a while without a match, pause until she taps.
+                if (System.currentTimeMillis() - started > SCAN_TIMEOUT_MS) {
+                    analyzer.cancel()
+                    _state.update { it.copy(scanState = ScanState.Paused) }
+                    break
+                }
                 val frame = nextFrame()
                 if (frame == null) { delay(300); continue }
                 val allowOcr = n % OCR_EVERY == OCR_EVERY - 1
-                val id = withContext(ocrDispatcher) { recognizeFrame(frame, allowOcr) }
+                val hit = withContext(ocrDispatcher) { recognizeFrame(frame, allowOcr) }
                 n++
+                // Line-fingerprint matches (book / Mushaf pack) are trusted at once; an OCR guess
+                // must be seen twice in a row before anything plays.
+                val id = when {
+                    hit == null -> null
+                    !hit.fromOcr -> hit.verseId
+                    hit.verseId == ocrCandidate -> hit.verseId
+                    else -> { ocrCandidate = hit.verseId; null }
+                }
                 val verse = id?.let { repository.byId(it) }
                 if (verse != null && _state.value.screen == Screen.Scanner) {
                     analyzer.cancel()
@@ -310,7 +328,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
      * 1) Her book: compare the crop's printed lines with the book's own lines (fast, no OCR).
      * 2) Otherwise OCR the crop at each calibrated text size; stop early on a decisive pass.
      */
-    private fun recognizeFrame(frame: Bitmap, allowOcr: Boolean = true): Int? {
+    /** A recognised ayah, and whether it came from OCR (needs confirming) or line fingerprints. */
+    private data class Hit(val verseId: Int, val fromOcr: Boolean)
+
+    /** Restarts scanning after it paused (tap on the camera page). */
+    fun resumeScan() {
+        if (_state.value.screen != Screen.Scanner) return
+        prepareScanner()
+        startAutoScan()
+    }
+
+    private fun recognizeFrame(frame: Bitmap, allowOcr: Boolean = true): Hit? {
         bookMatcher?.let { bm ->
             val w = frame.width; val h = frame.height
             val px = IntArray(w * h); frame.getPixels(px, 0, w, 0, 0, w, h)
@@ -318,7 +346,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
             val t0 = System.currentTimeMillis()
             val r = bm.match(lum, w, h)
             if (com.bayyinah.app.BuildConfig.DEBUG) android.util.Log.d("BayyinahOcr", "book: $r in ${System.currentTimeMillis() - t0} ms")
-            if (r != null && r.accepted) { frame.recycle(); return r.verseId }
+            if (r != null && r.accepted) { frame.recycle(); return Hit(r.verseId, false) }
         }
         mushafMatcher?.let { mm ->
             val w = frame.width; val h = frame.height
@@ -327,11 +355,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
             val t0 = System.currentTimeMillis()
             val r = mm.match(lum, w, h)
             if (com.bayyinah.app.BuildConfig.DEBUG) android.util.Log.d("BayyinahOcr", "mushaf: $r in ${System.currentTimeMillis() - t0} ms")
-            if (r != null && r.accepted) { frame.recycle(); return r.verseId }
+            if (r != null && r.accepted) { frame.recycle(); return Hit(r.verseId, false) }
         }
         val ocr = recognizer; val m = matcher
         if (!allowOcr || ocr == null || m == null) { frame.recycle(); return null }
-        val near = _state.value.verse?.id
+        val near: Int? = null   // no bias toward the last ayah: ties must not turn into a guess
         val variants = try { TextImagePrep.prepare(frame) } finally { frame.recycle() }
         val passes = ArrayList<List<VerseMatcher.Candidate>>(variants.size)
         try {
@@ -340,12 +368,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
                 val top = m.rank(text)
                 if (com.bayyinah.app.BuildConfig.DEBUG) android.util.Log.d("BayyinahOcr", "pass ${img.width}x${img.height}: '$text' -> ${top.take(2)}")
                 passes += top
-                MatchDecider.decisive(top, near)?.let { return it }
+                MatchDecider.decisive(top, near)?.let { return Hit(it, true) }
             }
         } finally {
             variants.forEach { it.recycle() }
         }
-        return MatchDecider.decide(passes, near)
+        return MatchDecider.decide(passes, near)?.let { Hit(it, true) }
     }
 
     /** Debug builds only: frames come from this image file instead of the camera. */
@@ -390,7 +418,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
                     colorFilter = android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix().apply { setSaturation(0f) })
                 })
                 src.recycle()
-                recognizeFrame(gray).also { android.util.Log.d("BayyinahOcr", "RESULT $path -> $it") }
+                recognizeFrame(gray).also { android.util.Log.d("BayyinahOcr", "RESULT $path -> $it") }?.verseId
             }
             id?.let { repository.byId(it) }?.let { showVerse(it, autoplay = false) }
         }
@@ -648,6 +676,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
         const val KEY_RECENT = "recent"
         const val MAX_RECENT = 30
         const val SCAN_INTERVAL_MS = 450L
+        /** Scanning pauses after this long without a match. */
+        const val SCAN_TIMEOUT_MS = 40_000L
         /** OCR fallback on every 4th frame only (book matching runs on every frame). */
         const val OCR_EVERY = 4
 

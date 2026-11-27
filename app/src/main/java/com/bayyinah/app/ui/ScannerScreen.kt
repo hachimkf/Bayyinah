@@ -127,21 +127,26 @@ fun ScannerScreen(vm: MainViewModel, state: UiState) {
             modifier = Modifier.fillMaxSize(),
         )
 
-        // Soft mask outside the frame; tap anywhere to refocus on the frame.
-        FrameMask(frame)
-        ScanFrame(frame, Modifier.fillMaxSize().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-            haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); focusTick++
-        })
+        // The design's dark fade (linear-gradient-2): dark at the top and bottom, clear around the frame.
+        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(CameraFade))
+        // Tap: refocus on the frame, or resume scanning after it paused.
+        ScanFrame(
+            frame,
+            Modifier.fillMaxSize().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                if (state.scanState == ScanState.Paused) vm.resumeScan() else focusTick++
+            },
+            sweeping = state.scanState == ScanState.Scanning,
+        )
 
-        // Top: back · torch (round jade buttons, as in the mockup)
+        // Top: back · torch — mint circles with white icons (design)
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = SidePad, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = with(density) { (wPx * 0.074f).toDp() }, vertical = 12.dp),
         ) {
-            IconButton(
-                onClick = { vm.backToHome() }, modifier = Modifier.size(60.dp),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = com.bayyinah.app.ui.theme.Jade, contentColor = EmeraldDeep),
-            ) { Icon(AppIcons.Back, stringResource(R.string.cd_back), Modifier.size(28.dp)) }
+            Surface(onClick = { vm.backToHome() }, shape = CircleShape, color = ScanMint, contentColor = EmeraldDeep, modifier = Modifier.size(52.dp)) {
+                androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { Icon(AppIcons.Back, stringResource(R.string.cd_back), Modifier.size(26.dp)) }
+            }
             Spacer(Modifier.weight(1f))
             TorchButton(state.torch) { haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); vm.toggleTorch() }
         }
@@ -157,6 +162,17 @@ fun ScannerScreen(vm: MainViewModel, state: UiState) {
 
 
     }
+}
+
+/** linear-gradient-2 of the design: y 4.2 %–94.3 % of the screen. */
+private val CameraFade: androidx.compose.ui.graphics.Brush = run {
+    val y0 = 0.0418f; val span = 0.9014f
+    androidx.compose.ui.graphics.Brush.verticalGradient(
+        0f to Color(0xFF1A1A1A), y0 to Color(0xFF1A1A1A),
+        (y0 + 0.27f * span) to Color(0xFF121212).copy(alpha = 0.35f),
+        (y0 + 0.51f * span) to Color(0xFF0E0E0E).copy(alpha = 0f),
+        (y0 + span) to Color.Black, 1f to Color.Black,
+    )
 }
 
 /** Darkens the camera outside the frame a little, so the eye goes to the box. */
@@ -197,11 +213,13 @@ private fun FramingOverlay(frame: RectF, scanning: Boolean) {
 
 @Composable
 private fun HintLabel(state: UiState) {
+    // While scanning the page stays clean (as in the design); words only when something needs her.
     val (ar, fr, color) = when (state.scanState) {
+        ScanState.Scanning -> return
         ScanState.Loading -> Triple(R.string.loading, null, Cream)
-        ScanState.Scanning -> Triple(R.string.scanning, R.string.scanning_sub, Cream)
-        ScanState.NoMatch -> Triple(R.string.no_match, null, Amber)
+        ScanState.NoMatch -> Triple(R.string.no_match, null, Cream)
         ScanState.Idle -> Triple(R.string.frame_hint, null, Cream)
+        ScanState.Paused -> Triple(R.string.scan_paused, R.string.scan_paused_sub, Cream)
     }
     AnimatedContent(targetState = Triple(ar, fr, color), label = "hint") { (a, f, c) ->
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 24.dp)) {

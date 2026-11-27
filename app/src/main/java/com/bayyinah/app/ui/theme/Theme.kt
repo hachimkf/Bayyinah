@@ -17,27 +17,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// Brand palette — greens and white only (Material 3 Expressive look: pale green background,
-// white cards, deep green actions, a soft lime glow for accents).
-val Emerald = Color(0xFF1F6B47)
-val EmeraldDeep = Color(0xFF0F3D2A)
-val EmeraldSoft = Color(0xFFD3EBDA)
-/** Lime accent (was amber): icons on deep green, active states, glows. */
-val Amber = Color(0xFFC6EF8A)
-val AmberDeep = Color(0xFF3E6B12)
-val AmberSoft = Color(0xFFE6F6D2)
+// Brand palette — warm and calm for readability: cream page, beige verse card, sage circles,
+// deep green actions, gold accents (progress line, repeat).
+val Emerald = Color(0xFF2D6B4F)
+val EmeraldDeep = Color(0xFF174A3A)
+val EmeraldSoft = Color(0xFFDDE6D8)
+/** Gold accent (repeat icon, progress line, highlights). */
+val Amber = Color(0xFFB8975A)
+val AmberDeep = Color(0xFF7D5F28)
+val AmberSoft = Color(0xFFF1E7D2)
 /** Page background, and light text on deep green. */
-val Cream = Color(0xFFF3F9F3)
-val Parchment = Color(0xFFE2EDE4)
-val Ink = Color(0xFF14211A)
-val InkMuted = Color(0xFF55665B)
-/** Floating bar and round buttons. */
-val Jade = Color(0xFFCBE7D2)
-/** Background of the home page (light). */
-val Night = Color(0xFFE8F3EA)
-val Mint = Color(0xFFE1F0E4)        // tinted card
-val MintStrong = Color(0xFFC3E3CB)
-val Sand = Color(0xFFFFFFFF)        // white card
+val Cream = Color(0xFFF8F4EC)
+val Parchment = Color(0xFFE2E7DC)
+val Ink = Color(0xFF1C2420)
+val InkMuted = Color(0xFF5F665F)
+/** Sage circles and round buttons. */
+val Jade = Color(0xFFDFE6DA)
+val Night = Color(0xFFF1ECE2)
+val Mint = Color(0xFFEDE8DC)        // beige verse card / tinted card
+val MintStrong = Color(0xFFD6DFCF)
+val Sand = Color(0xFFFCFAF5)        // light card
 
 /**
  * KFGQPC Warsh Uthmanic Script (King Fahd Complex). Required: the Warsh text uses codepoints
@@ -61,11 +60,11 @@ private val BayyinahColors = lightColorScheme(
     onSurface = Ink,
     onSurfaceVariant = InkMuted,
     surfaceContainerLowest = Color.White,
-    surfaceContainerLow = Color(0xFFF7FBF7),
+    surfaceContainerLow = Color(0xFFFBF8F2),
     surfaceContainer = Parchment,
-    surfaceContainerHigh = Color(0xFFD9E7DC),
-    outline = Color(0xFFB5C7BA),
-    outlineVariant = Color(0xFFD5E2D8),
+    surfaceContainerHigh = Color(0xFFE6E1D5),
+    outline = Color(0xFFC9C2B2),
+    outlineVariant = Color(0xFFE3DDCF),
 )
 
 private val BayyinahTypography = Typography().run {
