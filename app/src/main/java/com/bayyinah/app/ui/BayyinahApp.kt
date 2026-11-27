@@ -48,7 +48,7 @@ fun BayyinahApp(vm: MainViewModel) {
     val view = LocalView.current
     SideEffect {
         (view.context as? Activity)?.window?.let {
-            WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = state.screen != Screen.Scanner
+            WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = state.screen != Screen.Scanner && state.screen != Screen.Home
         }
         // Never let the screen sleep while she follows an ayah (player open) or scans.
         view.keepScreenOn = state.verse != null || state.screen == Screen.Scanner
@@ -85,7 +85,7 @@ fun BayyinahApp(vm: MainViewModel) {
             label = "screen",
         ) { screen ->
             when (screen) {
-                Screen.Home -> ScanHomeScreen(vm, update)
+                Screen.Home -> ScanHomeScreen(vm, state, update, index.sample)
                 Screen.Index -> IndexScreen(vm, index, setupError = state.setupError)
                 Screen.History -> HistoryScreen(vm, index)
                 // The camera is only bound while the scanner is shown (battery).
@@ -108,7 +108,7 @@ fun BayyinahApp(vm: MainViewModel) {
                     Screen.History -> vm.openHistory()
                     else -> vm.openSettings()
                 }
-            })
+            }, onScan = { vm.openScanner() })
         }
         if (dim > 0f) Box(
             Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = dim))

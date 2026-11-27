@@ -99,6 +99,8 @@ data class IndexState(
     val favorites: List<Verse> = emptyList(),
     /** Recently played ayat, newest first. */
     val recent: List<Verse> = emptyList(),
+    /** Ayat drawn on the home page to show how to scan (Al-Fatiha). */
+    val sample: List<Verse> = emptyList(),
     /** Her book «أقرأ وأتعلم – المستوى الثاني»: its 24 Quran lessons. */
     val lessons: List<BookLesson> = emptyList(),
     /** Set when a book lesson is open: only its ayat are listed. */
@@ -149,7 +151,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
                 val jumpSurah = surahs.firstOrNull { it.number == (last?.surah ?: 1) } ?: surahs.firstOrNull()
                 val favorites = loadIds(KEY_FAVORITES).mapNotNull { repository.byId(it) }
                 val recent = loadIds(KEY_RECENT).mapNotNull { repository.byId(it) }
-                _index.update { it.copy(surahs = surahs, jumpSurah = jumpSurah, lastVerse = last, favorites = favorites, recent = recent) }
+                val sample = repository.versesOf(1)
+                _index.update { it.copy(surahs = surahs, jumpSurah = jumpSurah, lastVerse = last, favorites = favorites, recent = recent, sample = sample) }
             } catch (e: Exception) {
                 android.util.Log.e("Bayyinah", "Setup failed", e)
                 _state.update { it.copy(setupError = e.message ?: e.javaClass.simpleName) }

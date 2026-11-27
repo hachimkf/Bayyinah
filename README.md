@@ -8,8 +8,8 @@ APK ≈ **7.5 MB** (scanner OCR included). Text, search and navigation work offl
 
 ## Using it
 
-- **Floating bar** at the bottom with four tabs: **الرئيسية** (home), **الفهرس** (index), **المحفوظات** (saved), **الإعدادات** (settings).
-- **Home** is one huge «امسح» button: it opens the camera to scan the ayah in her book. «أو اختر الآية بنفسك» goes to the index.
+- **Floating bar** at the bottom (jade pill, plus a separate round scan button) with four tabs: **الرئيسية** (home), **الفهرس** (index), **المحفوظات** (saved), **الإعدادات** (settings).
+- **Home** shows how to scan: a Quran page with the light focused on one ayah inside the white frame and a sweeping scan line. Tap the page, or the round **scan button** beside the floating bar, to open the camera (same frame, back and torch buttons).
 - The screen never turns off while the player is open or while scanning.
 - The interface is **Arabic only**, laid out right-to-left, with Latin digits (1, 2, 3) as used in Morocco.
 - **اذهب إلى آية** (quick jump, top card):

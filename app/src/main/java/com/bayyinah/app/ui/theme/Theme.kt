@@ -28,6 +28,10 @@ val Cream = Color(0xFFFFFDF6)
 val Parchment = Color(0xFFEFEBE0)
 val Ink = Color(0xFF1A1C17)
 val InkMuted = Color(0xFF5E6157)
+/** Soft jade for the floating bar and round buttons (from the mockup). */
+val Jade = Color(0xFF75C9A3)
+/** Deep night green behind the scan pages. */
+val Night = Color(0xFF0E1F17)
 val Mint = Color(0xFFE3F1E7)        // soft card tint (reference: pastel cards)
 val MintStrong = Color(0xFFC6E3CF)
 val Sand = Color(0xFFF7F0DC)        // second soft card tint

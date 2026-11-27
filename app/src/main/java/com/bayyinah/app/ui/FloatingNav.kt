@@ -8,6 +8,13 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import com.bayyinah.app.ui.theme.Jade
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -51,39 +58,47 @@ private val Tabs = listOf(
 
 fun Screen.isTab() = this == Screen.Home || this == Screen.Index || this == Screen.History || this == Screen.Settings
 
-/** Floating pill navigation bar (Material 3 Expressive style): the chosen tab grows into an amber pill with its name. */
+/**
+ * Floating bar: a jade pill with the four tabs (icon + small name, the chosen one on a deep-green
+ * indicator) and, apart from it, a round scan button that opens the camera.
+ */
 @Composable
-fun FloatingNav(current: Screen, onSelect: (Screen) -> Unit, modifier: Modifier = Modifier) {
+fun FloatingNav(current: Screen, onSelect: (Screen) -> Unit, onScan: () -> Unit, modifier: Modifier = Modifier) {
     val haptics = LocalHapticFeedback.current
-    Surface(
-        color = EmeraldDeep, shape = CircleShape, shadowElevation = 10.dp,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         modifier = modifier.navigationBarsPadding().padding(bottom = 16.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(8.dp).animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
-        ) {
-            Tabs.forEach { t ->
-                val sel = t.screen == current
-                val bg by animateColorAsState(if (sel) Amber else EmeraldDeep, label = "tabBg")
-                val fg by animateColorAsState(if (sel) EmeraldDeep else Cream.copy(alpha = 0.75f), label = "tabFg")
-                Surface(
-                    onClick = { if (!sel) { haptics.performHapticFeedback(HapticFeedbackType.SegmentTick); onSelect(t.screen) } },
-                    color = bg, contentColor = fg, shape = CircleShape,
-                    modifier = Modifier.height(56.dp).semantics { role = Role.Tab; selected = sel },
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp)) {
-                        Icon(t.icon, stringResource(t.label), Modifier.size(26.dp))
-                        AnimatedVisibility(sel, enter = fadeIn() + expandHorizontally(), exit = fadeOut() + shrinkHorizontally()) {
-                            Row {
-                                Spacer(Modifier.width(8.dp))
-                                Text(stringResource(t.label), fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
-                            }
+        Surface(color = Jade, shape = CircleShape, shadowElevation = 8.dp) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+                Tabs.forEach { t ->
+                    val sel = t.screen == current
+                    val ind by animateColorAsState(if (sel) EmeraldDeep else Jade, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "ind")
+                    val fg by animateColorAsState(if (sel) Cream else EmeraldDeep, label = "fg")
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.width(66.dp).clip(RoundedCornerShape(22.dp))
+                            .clickable { if (!sel) { haptics.performHapticFeedback(HapticFeedbackType.SegmentTick); onSelect(t.screen) } }
+                            .padding(vertical = 4.dp)
+                            .semantics { role = Role.Tab; selected = sel },
+                    ) {
+                        Box(Modifier.width(52.dp).height(32.dp).clip(CircleShape).background(ind), contentAlignment = Alignment.Center) {
+                            Icon(t.icon, null, tint = fg, modifier = Modifier.size(22.dp))
                         }
+                        Text(stringResource(t.label), fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 11.sp, color = EmeraldDeep, maxLines = 1)
                     }
                 }
             }
+        }
+        // The scan button, apart from the tabs.
+        Surface(
+            onClick = { haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); onScan() },
+            color = Jade, contentColor = EmeraldDeep, shape = CircleShape, shadowElevation = 8.dp,
+            modifier = Modifier.size(68.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) { Icon(AppIcons.Scan, stringResource(R.string.scan_title), Modifier.size(32.dp)) }
         }
     }
 }

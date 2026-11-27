@@ -101,11 +101,6 @@ fun ScannerRoute(vm: MainViewModel, state: UiState) {
     else Box(Modifier.fillMaxSize().background(Color.Black))
 }
 
-/** Fractions of the screen used by the framing box (upper-middle area, wide for a verse line). */
-private const val FRAME_LEFT = 0.06f
-private const val FRAME_RIGHT = 0.94f
-private const val FRAME_TOP = 0.15f
-private const val FRAME_HEIGHT = 0.20f
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -117,9 +112,7 @@ fun ScannerScreen(vm: MainViewModel, state: UiState) {
         val density = LocalDensity.current
         val wPx = constraints.maxWidth.toFloat()
         val hPx = constraints.maxHeight.toFloat()
-        val frame = remember(wPx, hPx) {
-            RectF(wPx * FRAME_LEFT, hPx * FRAME_TOP, wPx * FRAME_RIGHT, hPx * (FRAME_TOP + FRAME_HEIGHT))
-        }
+        val frame = remember(wPx, hPx) { scanFrame(wPx, hPx) }
         LaunchedEffect(frame) {
             vm.analyzer.frameInView = frame
             vm.analyzer.viewWidth = wPx.toInt()
@@ -134,48 +127,44 @@ fun ScannerScreen(vm: MainViewModel, state: UiState) {
             modifier = Modifier.fillMaxSize(),
         )
 
-        FramingOverlay(frame = frame, scanning = state.scanState == ScanState.Scanning)
+        // Soft mask outside the frame; tap anywhere to refocus on the frame.
+        FrameMask(frame)
+        ScanFrame(frame, Modifier.fillMaxSize().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+            haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); focusTick++
+        })
 
-        // Top bar: back + title + torch
+        // Top: back · torch (round jade buttons, as in the mockup)
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = SidePad, vertical = 12.dp),
         ) {
             IconButton(
-                onClick = { vm.backToHome() }, modifier = Modifier.size(56.dp),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.45f), contentColor = Cream),
+                onClick = { vm.backToHome() }, modifier = Modifier.size(60.dp),
+                colors = IconButtonDefaults.iconButtonColors(containerColor = com.bayyinah.app.ui.theme.Jade, contentColor = EmeraldDeep),
             ) { Icon(AppIcons.Back, stringResource(R.string.cd_back), Modifier.size(28.dp)) }
-            Spacer(Modifier.width(12.dp))
-            Surface(color = Color.Black.copy(alpha = 0.45f), shape = CircleShape) {
-                Text(stringResource(R.string.scan_title), color = Cream, fontWeight = FontWeight.Bold, fontSize = 16.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
-            }
             Spacer(Modifier.weight(1f))
-            IconButton(
-                onClick = { haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); vm.toggleTorch() },
-                modifier = Modifier.size(56.dp),
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = if (state.torch) Amber else Color.Black.copy(alpha = 0.45f),
-                    contentColor = if (state.torch) EmeraldDeep else Cream,
-                ),
-            ) { Icon(if (state.torch) AppIcons.FlashOn else AppIcons.FlashOff, stringResource(R.string.cd_torch), Modifier.size(28.dp)) }
+            TorchButton(state.torch) { haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); vm.toggleTorch() }
         }
 
         // Instruction + live "searching" indicator under the frame. Scanning is automatic;
         // tapping the indicator just refocuses the camera on the frame.
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth().offset(y = with(density) { frame.bottom.toDp() } + 16.dp),
+            modifier = Modifier.fillMaxWidth().offset(y = with(density) { frame.bottom.toDp() } + 28.dp),
         ) {
             HintLabel(state)
-            Spacer(Modifier.height(20.dp))
-            SearchingIndicator {
-                haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                focusTick++
-            }
         }
 
 
+    }
+}
+
+/** Darkens the camera outside the frame a little, so the eye goes to the box. */
+@Composable
+private fun FrameMask(frame: RectF) {
+    Canvas(Modifier.fillMaxSize().graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }) {
+        drawRect(Color.Black.copy(alpha = 0.40f))
+        drawRoundRect(Color.Transparent, Offset(frame.left, frame.top), Size(frame.width(), frame.height()), CornerRadius(30.dp.toPx()), blendMode = BlendMode.Clear)
     }
 }
 

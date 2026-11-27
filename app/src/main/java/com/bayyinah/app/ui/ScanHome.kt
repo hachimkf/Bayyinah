@@ -1,143 +1,124 @@
 package com.bayyinah.app.ui
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialShapes
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bayyinah.app.R
+import com.bayyinah.app.data.Verse
 import com.bayyinah.app.ui.theme.Amber
 import com.bayyinah.app.ui.theme.Cream
-import com.bayyinah.app.ui.theme.Emerald
 import com.bayyinah.app.ui.theme.EmeraldDeep
-import com.bayyinah.app.ui.theme.Mint
-import com.bayyinah.app.ui.theme.QuranFont
+import com.bayyinah.app.ui.theme.Jade
+import com.bayyinah.app.ui.theme.Night
+import com.bayyinah.app.ui.theme.VerseTextStyle
 
 /**
- * Home tab: one huge button — scan the ayah in her book. Everything else (index, saved,
- * settings) is one tap away in the floating bar.
+ * Home: shows how to scan — a Quran page with the light focused on one ayah inside the frame,
+ * and the scan line sweeping. Tapping the page (or the round scan button in the bar) opens the camera.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun ScanHomeScreen(vm: MainViewModel, update: UpdateUi) {
-    Box(
-        Modifier.fillMaxSize()
-            .background(Brush.verticalGradient(0f to Cream, 0.55f to Cream, 1f to Mint)),
+fun ScanHomeScreen(vm: MainViewModel, state: UiState, update: UpdateUi, sample: List<Verse>) {
+    BoxWithConstraints(
+        Modifier.fillMaxSize().background(Night)
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { vm.openScanner() },
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxSize().statusBarsPadding()
-                .padding(start = SidePad, end = SidePad, top = 16.dp, bottom = NavSpace),
-        ) {
-            // Name
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painterResource(R.drawable.app_logo), null, Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)))
-                Spacer(Modifier.width(10.dp))
-                Text("بيّنة", fontFamily = QuranFont, fontSize = 32.sp, color = EmeraldDeep)
-            }
-            if (update != UpdateUi.Hidden) {
-                Spacer(Modifier.height(12.dp))
-                UpdateBanner(update, vm)
-            }
-            Spacer(Modifier.weight(1f))
+        val density = LocalDensity.current
+        val w = constraints.maxWidth.toFloat(); val h = constraints.maxHeight.toFloat()
+        val frame = remember(w, h) { scanFrame(w, h) }
+        val frameMid = with(density) { frame.centerY().toDp() }
 
-            BigScanButton { vm.openScanner() }
-
-            Spacer(Modifier.height(24.dp))
-            Text(stringResource(R.string.scan_home_title), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = EmeraldDeep, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.scan_home_sub), fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center, lineHeight = 26.sp)
-            Spacer(Modifier.height(28.dp))
-            Surface(onClick = { vm.openIndex() }, color = Cream, contentColor = EmeraldDeep, shape = CircleShape) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp)) {
-                    Icon(AppIcons.List, null, tint = Emerald, modifier = Modifier.size(22.dp))
-                    Spacer(Modifier.width(10.dp))
-                    Text(stringResource(R.string.choose_manually), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        // The page: ayat centred on the frame (our own KFGQPC text, so nothing copyrighted is shown).
+        Box(Modifier.fillMaxSize().background(Cream))
+        Box(Modifier.fillMaxWidth().height(frameMid * 2), contentAlignment = Alignment.Center) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(56.dp),
+                modifier = Modifier.fillMaxWidth().wrapContentHeight(unbounded = true).padding(horizontal = 26.dp),
+            ) {
+                sample.forEach { v ->
+                    Text(
+                        v.verseText, textAlign = TextAlign.Center,
+                        style = VerseTextStyle.copy(fontSize = 32.sp, lineHeight = 64.sp, textDirection = TextDirection.Rtl),
+                    )
                 }
             }
+        }
+        // Light only inside the frame: dark gradients from the top and the bottom.
+        val top = FRAME_TOP; val bot = FRAME_TOP + FRAME_HEIGHT
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    0f to Night, (top - 0.12f) to Night.copy(alpha = 0.95f), (top - 0.04f) to Night.copy(alpha = 0.80f),
+                    top to Night.copy(alpha = 0.55f), (top + 0.05f) to Night.copy(alpha = 0f), (bot - 0.05f) to Night.copy(alpha = 0f),
+                    bot to Night.copy(alpha = 0.55f), (bot + 0.04f) to Night.copy(alpha = 0.80f), (bot + 0.12f) to Night.copy(alpha = 0.95f), 1f to Night,
+                ),
+            ),
+        )
+        ScanFrame(frame, Modifier.fillMaxSize())
+
+        // Top: logo · torch (the torch choice carries into the camera page).
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = SidePad, vertical = 12.dp),
+        ) {
+            Box(Modifier.size(60.dp).clip(CircleShape).background(Jade), contentAlignment = Alignment.Center) {
+                Image(painterResource(R.drawable.app_logo), null, Modifier.size(44.dp).clip(CircleShape))
+            }
             Spacer(Modifier.weight(1f))
+            TorchButton(state.torch) { vm.toggleTorch() }
+        }
+        if (update != UpdateUi.Hidden) {
+            Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 84.dp, start = SidePad, end = SidePad)) { UpdateBanner(update, vm) }
+        }
+
+        Box(Modifier.fillMaxWidth().offset(y = with(density) { frame.bottom.toDp() } + 24.dp), contentAlignment = Alignment.Center) {
+            Text(
+                stringResource(R.string.frame_hint), color = Cream, fontSize = 18.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.clip(CircleShape).background(Night.copy(alpha = 0.85f)).padding(horizontal = 20.dp, vertical = 10.dp),
+            )
         }
     }
 }
 
-/** 260 dp expressive "cookie": a slowly turning halo around a big emerald button. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+/** Round jade torch toggle (amber when on). */
 @Composable
-private fun BigScanButton(onClick: () -> Unit) {
-    val anim = rememberInfiniteTransition(label = "scanBtn")
-    val spin by anim.animateFloat(0f, 360f, infiniteRepeatable(tween(30000, easing = LinearEasing)), label = "spin")
-    val source = remember { MutableInteractionSource() }
-    val pressed by source.collectIsPressedAsState()
-    val desc = stringResource(R.string.scan_home_title)
-    val halo = MaterialShapes.Cookie12Sided.toShape()
-    val core = MaterialShapes.Cookie9Sided.toShape()
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(270.dp)) {
-        // One slowly turning halo only (cheap on low-end phones: rotation happens in the layer).
-        Box(Modifier.size(262.dp).rotate(spin).clip(halo).background(Emerald.copy(alpha = 0.22f)))
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(208.dp)
-                .scale(if (pressed) 0.92f else 1f)
-                .clip(core)
-                .background(Brush.linearGradient(listOf(Emerald, EmeraldDeep)))
-                .clickable(interactionSource = source, indication = androidx.compose.material3.ripple(), onClick = onClick)
-                .semantics { contentDescription = desc; role = Role.Button },
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(AppIcons.Scan, null, tint = Amber, modifier = Modifier.size(84.dp))
-                Spacer(Modifier.height(6.dp))
-                Text(stringResource(R.string.scan_home_btn), color = Cream, fontWeight = FontWeight.Bold, fontSize = 26.sp)
-            }
-        }
-    }
+fun TorchButton(on: Boolean, onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick, modifier = Modifier.size(60.dp),
+        colors = IconButtonDefaults.iconButtonColors(containerColor = if (on) Amber else Jade, contentColor = EmeraldDeep),
+    ) { Icon(if (on) AppIcons.FlashOn else AppIcons.FlashOff, stringResource(R.string.cd_torch), Modifier.size(28.dp)) }
 }
