@@ -50,7 +50,8 @@ sealed interface UpdateUi {
     data class Failed(val info: UpdateInfo) : UpdateUi
 }
 
-enum class Screen { Home, Scanner, Reader, Settings, History }
+/** Home = the big scan page; Index, History and Settings are the other tabs of the floating bar. */
+enum class Screen { Home, Index, Scanner, Reader, Settings, History }
 enum class ScanState { Loading, Idle, Scanning, NoMatch }
 
 /** Player sheet state (+ which screen is shown). */
@@ -180,6 +181,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
     }
 
     fun openSettings() = _state.update { it.copy(screen = Screen.Settings) }
+
+    fun openIndex() = _state.update { it.copy(screen = Screen.Index) }
 
     /** Favourites (heart) and recently played ayat. */
     fun openHistory() = _state.update { it.copy(screen = Screen.History) }

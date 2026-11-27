@@ -50,16 +50,19 @@ fun BayyinahApp(vm: MainViewModel) {
         (view.context as? Activity)?.window?.let {
             WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = state.screen != Screen.Scanner
         }
+        // Never let the screen sleep while she follows an ayah (player open) or scans.
+        view.keepScreenOn = state.verse != null || state.screen == Screen.Scanner
     }
     LaunchedEffect(state.verse?.id) {
         if (state.verse != null) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
     }
     BackHandler(enabled = state.verse != null) { vm.dismissVerse() }
     BackHandler(enabled = state.verse == null && state.screen != Screen.Home) { vm.backToHome() }
-    BackHandler(enabled = state.verse == null && state.screen == Screen.Home && index.openSurah != null) { vm.back() }
+    // Index tab with a surah open: back closes the surah first.
+    BackHandler(enabled = state.verse == null && state.screen == Screen.Index && index.openSurah != null) { vm.back() }
     // Home: the first back swipe only shows a hint; a second one within 2 s leaves the app.
     var lastBack by remember { mutableLongStateOf(0L) }
-    BackHandler(enabled = state.verse == null && state.screen == Screen.Home && index.openSurah == null) {
+    BackHandler(enabled = state.verse == null && state.screen == Screen.Home) {
         val now = android.os.SystemClock.uptimeMillis()
         if (now - lastBack < 2000) (view.context as? Activity)?.finish()
         else {
@@ -82,7 +85,8 @@ fun BayyinahApp(vm: MainViewModel) {
             label = "screen",
         ) { screen ->
             when (screen) {
-                Screen.Home -> HomeScreen(vm, index, update, setupError = state.setupError)
+                Screen.Home -> ScanHomeScreen(vm, update)
+                Screen.Index -> IndexScreen(vm, index, setupError = state.setupError)
                 Screen.History -> HistoryScreen(vm, index)
                 // The camera is only bound while the scanner is shown (battery).
                 Screen.Scanner -> ScannerRoute(vm, state)
@@ -91,6 +95,20 @@ fun BayyinahApp(vm: MainViewModel) {
                 Screen.Reader -> state.verse?.let { v -> VerseSheet(vm = vm, state = state, verse = v, fullScreen = true, favorite = index.favorites.any { it.id == v.id }) }
                     ?: androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(com.bayyinah.app.ui.theme.Cream))
             }
+        }
+        AnimatedVisibility(
+            visible = state.screen.isTab() && state.verse == null,
+            modifier = Modifier.align(Alignment.BottomCenter),
+            enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut(),
+        ) {
+            FloatingNav(state.screen, onSelect = { s ->
+                when (s) {
+                    Screen.Home -> vm.backToHome()
+                    Screen.Index -> vm.openIndex()
+                    Screen.History -> vm.openHistory()
+                    else -> vm.openSettings()
+                }
+            })
         }
         if (dim > 0f) Box(
             Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = dim))

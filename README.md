@@ -8,6 +8,9 @@ APK ≈ **7.5 MB** (scanner OCR included). Text, search and navigation work offl
 
 ## Using it
 
+- **Floating bar** at the bottom with four tabs: **الرئيسية** (home), **الفهرس** (index), **المحفوظات** (saved), **الإعدادات** (settings).
+- **Home** is one huge «امسح» button: it opens the camera to scan the ayah in her book. «أو اختر الآية بنفسك» goes to the index.
+- The screen never turns off while the player is open or while scanning.
 - The interface is **Arabic only**, laid out right-to-left, with Latin digits (1, 2, 3) as used in Morocco.
 - **اذهب إلى آية** (quick jump, top card):
   1. Tap the surah field and pick from the list (filter by number `67` or name `ملك` / `mulk`).
@@ -20,7 +23,7 @@ APK ≈ **7.5 MB** (scanner OCR included). Text, search and navigation work offl
   Maghribi-script page, 0 false matches on non-Quran text (`OcrRegressionTest`).
 - **⚙ الإعدادات:** app version, **Vérifier** (check for updates now), automatic update check on/off,
   and reciter.
-- **♥ المحفوظات** (heart beside the logo): ayat she marked with the heart in the player, and the last 30 she listened to.
+- **♥ المحفوظات** tab: ayat she marked with the heart in the player, and the last 30 she listened to.
 - **السور** list is folded by default; tap it to show the 114 surahs.
 - On the home screen, Back once shows «اسحب مرة أخرى للخروج»; a second Back within 2 s closes the app.
 - **Search** finds words without tashkeel (`رب العلمين`), surah names (`الكهف`, `kahf`), or references

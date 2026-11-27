@@ -54,13 +54,8 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
     val context = LocalContext.current
     Column(Modifier.fillMaxSize().background(Cream).statusBarsPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = SidePad, vertical = 16.dp)) {
-            FilledTonalIconButton(
-                onClick = { vm.backToHome() }, modifier = Modifier.size(56.dp),
-                colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Mint, contentColor = EmeraldDeep),
-            ) { Icon(AppIcons.Back, stringResource(R.string.cd_back), Modifier.size(28.dp)) }
             Text(stringResource(R.string.settings_title), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = EmeraldDeep,
                 textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
-            Spacer(Modifier.width(56.dp))
         }
         Column(
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -110,7 +105,7 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(NavSpace))
         }
     }
 }

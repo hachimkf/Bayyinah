@@ -96,6 +96,15 @@
     <string name="cd_next">الآية التالية</string>
     <string name="cd_close">إغلاق</string>
     <string name="cd_back">رجوع</string>
+    <string name="nav_home">الرئيسية</string>
+    <string name="nav_index">الفهرس</string>
+    <string name="nav_saved">المحفوظات</string>
+    <string name="nav_settings">الإعدادات</string>
+    <string name="index_title">فهرس القرآن</string>
+    <string name="scan_home_btn">امسح</string>
+    <string name="scan_home_title">امسح الآية من كتابك</string>
+    <string name="scan_home_sub">وجّه الكاميرا نحو الآية، وستبدأ التلاوة وحدها</string>
+    <string name="choose_manually">أو اختر الآية بنفسك</string>
     <string name="back_again">اسحب مرة أخرى للخروج</string>
     <string name="setup_error">تعذّر فتح المصحف. أعد تشغيل التطبيق.</string>
 </resources>

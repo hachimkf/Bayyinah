@@ -107,18 +107,21 @@ private val TopBarHeight = 76.dp
 /** Soft fade below the bar; content starts under it, so it only shows while scrolling. */
 val FadeTail = 44.dp
 
+/** Space kept under every tab's content for the floating navigation bar. */
+val NavSpace = 120.dp
+
 /**
- * Home: quick jump (surah + ayah number), her book, search, and the (collapsible) surah list.
+ * «الفهرس» tab: quick jump (surah + ayah number), search, and the (collapsible) surah list.
  * The layout is right-to-left (Arabic only); the player sheet floats above it (see [BayyinahApp]).
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, setupError: String?) {
+fun IndexScreen(vm: MainViewModel, index: IndexState, setupError: String?) {
     val keyboard = LocalSoftwareKeyboardController.current
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
     var surahsOpen by rememberSaveable { mutableStateOf(false) }
     val topPad = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + TopBarHeight + FadeTail
-    val contentPad = PaddingValues(start = SidePad, end = SidePad, top = topPad, bottom = 40.dp)
+    val contentPad = PaddingValues(start = SidePad, end = SidePad, top = topPad, bottom = NavSpace)
 
     Box(Modifier.fillMaxSize().background(Cream)) {
         val mode = when {
@@ -140,7 +143,6 @@ fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, setupErro
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    item(key = "update") { UpdateBanner(update, vm) }
                     if (setupError != null) item(key = "error") {
                         Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
                             Text(stringResource(R.string.setup_error) + "\n" + setupError, textAlign = TextAlign.Center,
@@ -148,7 +150,7 @@ fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, setupErro
                         }
                     }
                     item(key = "jump") {
-                        QuickJumpCard(index, vm, onPickSurah = { keyboard?.hide(); pickerOpen = true }, onGo = { keyboard?.hide(); vm.goToJump() }, onScan = { keyboard?.hide(); vm.openScanner() })
+                        QuickJumpCard(index, vm, onPickSurah = { keyboard?.hide(); pickerOpen = true }, onGo = { keyboard?.hide(); vm.goToJump() })
                     }
                     item(key = "search") {
                         SearchField(index.query, index.clearSignal, vm::setQuery, onSearch = { keyboard?.hide() }, modifier = Modifier.padding(top = 4.dp))
@@ -167,8 +169,6 @@ fun HomeScreen(vm: MainViewModel, index: IndexState, update: UpdateUi, setupErro
         TopBar(
             index.openSurah, index.openLesson,
             onBack = { keyboard?.hide(); vm.back() },
-            onHistory = { keyboard?.hide(); vm.openHistory() },
-            onSettings = { keyboard?.hide(); vm.openSettings() },
         )
     }
 
@@ -185,7 +185,7 @@ val TopFade = Brush.verticalGradient(
 )
 
 @Composable
-private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBack: () -> Unit, onHistory: () -> Unit, onSettings: () -> Unit) {
+private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBack: () -> Unit) {
     Box(Modifier.fillMaxWidth().background(TopFade).statusBarsPadding().height(TopBarHeight + FadeTail)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -203,21 +203,8 @@ private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBa
                 }
                 Spacer(Modifier.width(52.dp)) // balances the back button so the title is truly centred
             } else {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
-                        androidx.compose.foundation.Image(
-                            painter = painterResource(R.drawable.app_logo), contentDescription = null,
-                            modifier = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)),
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text("بيّنة", fontFamily = QuranFont, fontSize = 30.sp, color = EmeraldDeep)
-                            Text(stringResource(R.string.app_tagline), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                }
-                Spacer(Modifier.weight(1f))
-                RoundIconButton(AppIcons.Heart, stringResource(R.string.cd_history), onHistory, tint = Amber)
-                Spacer(Modifier.width(10.dp))
-                RoundIconButton(AppIcons.Settings, stringResource(R.string.cd_settings), onSettings)
+                Text(stringResource(R.string.index_title), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = EmeraldDeep,
+                    textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -233,7 +220,7 @@ fun RoundIconButton(icon: ImageVector, description: String, onClick: () -> Unit,
 
 /** Dark emerald hero: choose a surah, type the ayah number, read (or scan). */
 @Composable
-private fun QuickJumpCard(index: IndexState, vm: MainViewModel, onPickSurah: () -> Unit, onGo: () -> Unit, onScan: () -> Unit) {
+private fun QuickJumpCard(index: IndexState, vm: MainViewModel, onPickSurah: () -> Unit, onGo: () -> Unit) {
     val s = index.jumpSurah
     Surface(color = EmeraldDeep, contentColor = Cream, shape = RoundedCornerShape(36.dp), modifier = Modifier.fillMaxWidth()) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(18.dp)) {
@@ -266,20 +253,11 @@ private fun QuickJumpCard(index: IndexState, vm: MainViewModel, onPickSurah: () 
                 )
             }
             Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(
-                    onClick = onGo,
-                    colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = EmeraldDeep),
-                    shape = CircleShape, contentPadding = PaddingValues(horizontal = 8.dp),
-                    modifier = Modifier.weight(1f).height(64.dp),
-                ) { ButtonLabel(AppIcons.Play, stringResource(R.string.read)) }
-                Button(
-                    onClick = onScan,
-                    colors = ButtonDefaults.buttonColors(containerColor = Cream, contentColor = EmeraldDeep),
-                    shape = CircleShape, contentPadding = PaddingValues(horizontal = 8.dp),
-                    modifier = Modifier.weight(1f).height(64.dp),
-                ) { ButtonLabel(AppIcons.Scan, stringResource(R.string.scan_btn)) }
-            }
+            Button(
+                onClick = onGo,
+                colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = EmeraldDeep),
+                shape = CircleShape, modifier = Modifier.fillMaxWidth().height(64.dp),
+            ) { ButtonLabel(AppIcons.Play, stringResource(R.string.read)) }
         }
     }
 }
