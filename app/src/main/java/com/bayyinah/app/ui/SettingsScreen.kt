@@ -54,8 +54,10 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
     val context = LocalContext.current
     Column(Modifier.fillMaxSize().background(Cream).statusBarsPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = SidePad, vertical = 16.dp)) {
+            RoundIconButton(AppIcons.Back, stringResource(R.string.cd_back), { vm.backToHome() })
             Text(stringResource(R.string.settings_title), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = EmeraldDeep,
                 textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+            Spacer(Modifier.width(52.dp))
         }
         Column(
             verticalArrangement = Arrangement.spacedBy(14.dp),

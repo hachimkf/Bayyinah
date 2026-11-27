@@ -8,8 +8,8 @@ APK ≈ **7.5 MB** (scanner OCR included). Text, search and navigation work offl
 
 ## Using it
 
-- **Floating bar** at the bottom (jade pill, plus a separate round scan button) with four tabs: **الرئيسية** (home), **الفهرس** (index), **المحفوظات** (saved), **الإعدادات** (settings).
-- **Home** shows how to scan: a Quran page with the light focused on one ayah inside the white frame and a sweeping scan line. Tap the page, or the round **scan button** beside the floating bar, to open the camera (same frame, back and torch buttons).
+- **Home is the scan:** a Mushaf-style page fills the screen with a dark green vignette, so only the framed part is lit, and a scan line sweeps. One huge «امسح الآية» button opens the camera (same frame, back and torch buttons).
+- **Top circles (no text):** the app logo opens the whole Mushaf (index: quick jump, search, surah list; the heart there opens Saved), and the gear opens Settings.
 - The screen never turns off while the player is open or while scanning.
 - The interface is **Arabic only**, laid out right-to-left, with Latin digits (1, 2, 3) as used in Morocco.
 - **اذهب إلى آية** (quick jump, top card):
@@ -23,7 +23,7 @@ APK ≈ **7.5 MB** (scanner OCR included). Text, search and navigation work offl
   Maghribi-script page, 0 false matches on non-Quran text (`OcrRegressionTest`).
 - **⚙ الإعدادات:** app version, **Vérifier** (check for updates now), automatic update check on/off,
   and reciter.
-- **♥ المحفوظات** tab: ayat she marked with the heart in the player, and the last 30 she listened to.
+- **♥ المحفوظات** (heart in the index): ayat she marked with the heart in the player, and the last 30 she listened to.
 - **السور** list is folded by default; tap it to show the 114 surahs.
 - On the home screen, Back once shows «اسحب مرة أخرى للخروج»; a second Back within 2 s closes the app.
 - **Search** finds words without tashkeel (`رب العلمين`), surah names (`الكهف`, `kahf`), or references

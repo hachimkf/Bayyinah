@@ -75,11 +75,13 @@ fun HistoryScreen(vm: MainViewModel, index: IndexState) {
         // Same soft fade as the home bar.
         Box(Modifier.fillMaxWidth().background(TopFade).statusBarsPadding().height(76.dp + FadeTail)) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(76.dp).padding(horizontal = SidePad)) {
+                RoundIconButton(AppIcons.Back, stringResource(R.string.cd_back), { vm.openIndex() })
                 Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Icon(AppIcons.Heart, null, tint = Amber, modifier = Modifier.size(24.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.history_title), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = EmeraldDeep)
                 }
+                Spacer(Modifier.width(52.dp))
             }
         }
     }

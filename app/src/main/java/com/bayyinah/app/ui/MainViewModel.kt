@@ -151,7 +151,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
                 val jumpSurah = surahs.firstOrNull { it.number == (last?.surah ?: 1) } ?: surahs.firstOrNull()
                 val favorites = loadIds(KEY_FAVORITES).mapNotNull { repository.byId(it) }
                 val recent = loadIds(KEY_RECENT).mapNotNull { repository.byId(it) }
-                val sample = repository.versesOf(1)
+                val sample = repository.versesOf(113)   // Al-Falaq, drawn on the home page
                 _index.update { it.copy(surahs = surahs, jumpSurah = jumpSurah, lastVerse = last, favorites = favorites, recent = recent, sample = sample) }
             } catch (e: Exception) {
                 android.util.Log.e("Bayyinah", "Setup failed", e)

@@ -108,7 +108,7 @@ private val TopBarHeight = 76.dp
 val FadeTail = 44.dp
 
 /** Space kept under every tab's content for the floating navigation bar. */
-val NavSpace = 120.dp
+val NavSpace = 40.dp
 
 /**
  * «الفهرس» tab: quick jump (surah + ayah number), search, and the (collapsible) surah list.
@@ -169,6 +169,8 @@ fun IndexScreen(vm: MainViewModel, index: IndexState, setupError: String?) {
         TopBar(
             index.openSurah, index.openLesson,
             onBack = { keyboard?.hide(); vm.back() },
+            onHome = { keyboard?.hide(); vm.backToHome() },
+            onSaved = { keyboard?.hide(); vm.openHistory() },
         )
     }
 
@@ -185,7 +187,7 @@ val TopFade = Brush.verticalGradient(
 )
 
 @Composable
-private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBack: () -> Unit) {
+private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBack: () -> Unit, onHome: () -> Unit, onSaved: () -> Unit) {
     Box(Modifier.fillMaxWidth().background(TopFade).statusBarsPadding().height(TopBarHeight + FadeTail)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -203,8 +205,10 @@ private fun TopBar(open: Surah?, lesson: com.bayyinah.app.book.BookLesson?, onBa
                 }
                 Spacer(Modifier.width(52.dp)) // balances the back button so the title is truly centred
             } else {
+                RoundIconButton(AppIcons.Back, stringResource(R.string.cd_back), onHome)
                 Text(stringResource(R.string.index_title), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = EmeraldDeep,
-                    textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                RoundIconButton(AppIcons.Heart, stringResource(R.string.cd_history), onSaved)
             }
         }
     }

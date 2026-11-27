@@ -48,7 +48,7 @@ fun BayyinahApp(vm: MainViewModel) {
     val view = LocalView.current
     SideEffect {
         (view.context as? Activity)?.window?.let {
-            WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = state.screen != Screen.Scanner
+            WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = state.screen != Screen.Scanner && state.screen != Screen.Home
         }
         // Never let the screen sleep while she follows an ayah (player open) or scans.
         view.keepScreenOn = state.verse != null || state.screen == Screen.Scanner
@@ -60,6 +60,8 @@ fun BayyinahApp(vm: MainViewModel) {
     BackHandler(enabled = state.verse == null && state.screen != Screen.Home) { vm.backToHome() }
     // Index tab with a surah open: back closes the surah first.
     BackHandler(enabled = state.verse == null && state.screen == Screen.Index && index.openSurah != null) { vm.back() }
+    // Saved is opened from the index: back returns there.
+    BackHandler(enabled = state.verse == null && state.screen == Screen.History) { vm.openIndex() }
     // Home: the first back swipe only shows a hint; a second one within 2 s leaves the app.
     var lastBack by remember { mutableLongStateOf(0L) }
     BackHandler(enabled = state.verse == null && state.screen == Screen.Home) {
@@ -95,20 +97,6 @@ fun BayyinahApp(vm: MainViewModel) {
                 Screen.Reader -> state.verse?.let { v -> VerseSheet(vm = vm, state = state, verse = v, fullScreen = true, favorite = index.favorites.any { it.id == v.id }) }
                     ?: androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(com.bayyinah.app.ui.theme.Cream))
             }
-        }
-        AnimatedVisibility(
-            visible = state.screen.isTab() && state.verse == null,
-            modifier = Modifier.align(Alignment.BottomCenter),
-            enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut(),
-        ) {
-            FloatingNav(state.screen, onSelect = { s ->
-                when (s) {
-                    Screen.Home -> vm.backToHome()
-                    Screen.Index -> vm.openIndex()
-                    Screen.History -> vm.openHistory()
-                    else -> vm.openSettings()
-                }
-            }, onScan = { vm.openScanner() })
         }
         if (dim > 0f) Box(
             Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = dim))
