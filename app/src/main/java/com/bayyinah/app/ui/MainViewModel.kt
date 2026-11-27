@@ -186,7 +186,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
             if (pack != null) useMushafPack(pack)
         }
         viewModelScope.launch {
-            _mushafText.value = withContext(Dispatchers.IO) { com.bayyinah.app.book.MushafText.load(getApplication()) }
+            val app = getApplication<Application>()
+            _mushafText.value = withContext(Dispatchers.IO) { com.bayyinah.app.book.MushafText.load(app) }
+            // First run (or after an interrupted try): fetch the Moroccan font + text once, silently.
+            if (_mushafText.value == null) try {
+                val counts = repository.surahs().sortedBy { it.number }.map { it.ayahCount }
+                if (com.bayyinah.app.book.MushafTextDownloader.run(app, counts))
+                    _mushafText.value = withContext(Dispatchers.IO) { com.bayyinah.app.book.MushafText.load(app) }
+            } catch (e: Exception) {
+                android.util.Log.w("Bayyinah", "Mushaf text download failed (will retry next launch)", e)
+            }
         }
         viewModelScope.launch { queryFlow.debounce(250).collect { runSearch(it) } }
         val auto = prefs.getBoolean(KEY_AUTO_UPDATE, true)

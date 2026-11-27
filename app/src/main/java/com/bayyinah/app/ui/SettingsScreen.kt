@@ -97,10 +97,9 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
             val pickPack = androidx.activity.compose.rememberLauncherForActivityResult(
                 androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
             ) { uri -> if (uri != null) vm.importMushafPack(uri) }
-            // Shown only while a pack is still missing; once both are in, the card disappears
-            // (no replace / delete buttons, so nothing can be removed by accident).
-            val textPack by vm.mushafText.collectAsStateWithLifecycle()
-            if (state.mushafLines == null || textPack == null) Section(stringResource(R.string.settings_mushaf), color = Mint, content = EmeraldDeep) {
+            // Scan pack only (the Moroccan font and text download by themselves). Shown only while it's
+            // missing; once in, the card disappears (no replace / delete, nothing removed by accident).
+            if (state.mushafLines == null) Section(stringResource(R.string.settings_mushaf), color = Mint, content = EmeraldDeep) {
                 val installed = false
                 Text(
                     stringResource(if (installed) R.string.settings_mushaf_ready else R.string.settings_mushaf_none),
