@@ -212,7 +212,7 @@ fun VerseSheet(vm: MainViewModel, state: UiState, verse: Verse, fullScreen: Bool
                 // Back to the camera: scanning resumes automatically.
                 androidx.compose.material3.Button(
                     onClick = { haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); vm.openScanner() },
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Amber, contentColor = EmeraldDeep),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = EmeraldDeep, contentColor = Cream),
                     shape = CircleShape, modifier = Modifier.fillMaxWidth().height(64.dp),
                 ) {
                     Icon(AppIcons.Scan, null, Modifier.size(26.dp)); Spacer(Modifier.width(10.dp))

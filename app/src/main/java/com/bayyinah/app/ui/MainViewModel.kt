@@ -304,11 +304,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
                 val allowOcr = n % OCR_EVERY == OCR_EVERY - 1
                 val hit = withContext(ocrDispatcher) { recognizeFrame(frame, allowOcr) }
                 n++
-                // Line-fingerprint matches (book / Mushaf pack) are trusted at once; an OCR guess
-                // must be seen twice in a row before anything plays.
+                // Her book's line matches are trusted at once; a Mushaf-pack match or an OCR guess
+                // must be seen in two frames in a row before anything plays.
                 val id = when {
-                    hit == null -> null
-                    !hit.fromOcr -> hit.verseId
+                    hit == null -> { ocrCandidate = null; null }
+                    !hit.confirm -> hit.verseId
                     hit.verseId == ocrCandidate -> hit.verseId
                     else -> { ocrCandidate = hit.verseId; null }
                 }
@@ -328,8 +328,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
      * 1) Her book: compare the crop's printed lines with the book's own lines (fast, no OCR).
      * 2) Otherwise OCR the crop at each calibrated text size; stop early on a decisive pass.
      */
-    /** A recognised ayah, and whether it came from OCR (needs confirming) or line fingerprints. */
-    private data class Hit(val verseId: Int, val fromOcr: Boolean)
+    /**
+     * A recognised ayah. `confirm`: the match must be seen in two frames in a row before it plays
+     * (OCR guesses, and Mushaf-pack matches, which can fire on non-text scenes). Her book's matcher
+     * (with its ink-density check) is trusted at once.
+     */
+    private data class Hit(val verseId: Int, val confirm: Boolean)
 
     /** Restarts scanning after it paused (tap on the camera page). */
     fun resumeScan() {
@@ -355,7 +359,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
             val t0 = System.currentTimeMillis()
             val r = mm.match(lum, w, h)
             if (com.bayyinah.app.BuildConfig.DEBUG) android.util.Log.d("BayyinahOcr", "mushaf: $r in ${System.currentTimeMillis() - t0} ms")
-            if (r != null && r.accepted) { frame.recycle(); return Hit(r.verseId, false) }
+            if (r != null && r.accepted) { frame.recycle(); return Hit(r.verseId, true) }
         }
         val ocr = recognizer; val m = matcher
         if (!allowOcr || ocr == null || m == null) { frame.recycle(); return null }
