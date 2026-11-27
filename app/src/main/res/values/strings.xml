@@ -36,6 +36,15 @@
     <string name="settings_auto">تحقق تلقائيًا</string>
     <string name="settings_auto_desc">عند فتح التطبيق، مرة كل 12 ساعة</string>
     <string name="settings_reciter">القارئ</string>
+    <string name="settings_mushaf">المصحف كاملًا</string>
+    <string name="settings_mushaf_none">لمسح أي صفحة من المصحف المحمدي (ورش)، استورد ملف المصحف الذي وصلك.</string>
+    <string name="settings_mushaf_ready">الملف مثبَّت: يمكنك مسح أي صفحة من المصحف.</string>
+    <string name="settings_mushaf_import">استيراد ملف المصحف</string>
+    <string name="settings_mushaf_replace">استبدال الملف</string>
+    <string name="settings_mushaf_remove">حذف الملف</string>
+    <string name="settings_mushaf_working">جارٍ الاستيراد…</string>
+    <string name="settings_mushaf_done">تم الاستيراد</string>
+    <string name="settings_mushaf_failed">هذا الملف ليس ملف مصحف صالحًا</string>
 
     <!-- Her book -->
     <string name="book_title">كتابي: أقرأ وأتعلم</string>

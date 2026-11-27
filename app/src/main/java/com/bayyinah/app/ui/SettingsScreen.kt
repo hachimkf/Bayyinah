@@ -91,6 +91,41 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, update: UpdateUi) {
                 }
             }
 
+            // Whole Mushaf: a pack file she receives and imports (never bundled with the app)
+            val pickPack = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
+            ) { uri -> if (uri != null) vm.importMushafPack(uri) }
+            Section(stringResource(R.string.settings_mushaf), color = Mint, content = EmeraldDeep) {
+                val installed = state.mushafLines != null
+                Text(
+                    stringResource(if (installed) R.string.settings_mushaf_ready else R.string.settings_mushaf_none),
+                    fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+                )
+                when (state.mushafImport) {
+                    MushafImport.Working -> R.string.settings_mushaf_working
+                    MushafImport.Done -> R.string.settings_mushaf_done
+                    MushafImport.Failed -> R.string.settings_mushaf_failed
+                    MushafImport.Idle -> null
+                }?.let {
+                    Spacer(Modifier.height(6.dp))
+                    Text(stringResource(it), fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                }
+                Spacer(Modifier.height(12.dp))
+                Button(
+                    onClick = { pickPack.launch(arrayOf("*/*")) },
+                    enabled = state.mushafImport != MushafImport.Working,
+                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldDeep, contentColor = Cream),
+                    shape = CircleShape, modifier = Modifier.fillMaxWidth().height(60.dp),
+                ) {
+                    Text(stringResource(if (installed) R.string.settings_mushaf_replace else R.string.settings_mushaf_import), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+                if (installed) {
+                    androidx.compose.material3.TextButton(onClick = { vm.removeMushafPack() }, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.settings_mushaf_remove), color = EmeraldDeep)
+                    }
+                }
+            }
+
             // Reciter
             Section(stringResource(R.string.settings_reciter), color = Mint, content = EmeraldDeep) {
                 state.reciters.forEach { rc ->

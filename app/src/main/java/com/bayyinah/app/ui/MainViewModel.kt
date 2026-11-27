@@ -55,12 +55,17 @@ enum class Screen { Home, Index, Scanner, Reader, Settings, History }
 enum class ScanState { Loading, Idle, Scanning, NoMatch }
 
 /** Player sheet state (+ which screen is shown). */
+enum class MushafImport { Idle, Working, Done, Failed }
+
 data class UiState(
     val screen: Screen = Screen.Home,
     val scanState: ScanState = ScanState.Loading,
     val torch: Boolean = false,
     /** Settings: check GitHub for updates automatically on launch. */
     val autoUpdate: Boolean = true,
+    /** Whole-Mushaf scanning: lines in the imported pack (null = no pack), and the last import outcome. */
+    val mushafLines: Int? = null,
+    val mushafImport: MushafImport = MushafImport.Idle,
     val verse: Verse? = null,
     /** False when the chosen reciter has no timing for this ayah. */
     val audioAvailable: Boolean = false,
@@ -138,6 +143,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
     private var scanSetupJob: Job? = null
     private var book: BookRefs? = null
     private var bookMatcher: BookMatcher? = null
+    /** Whole printed Mushaf, from a pack the user imported (Settings). */
+    @Volatile private var mushafMatcher: com.bayyinah.app.book.MushafMatcher? = null
     private var scanJob: Job? = null
 
     init {
@@ -166,6 +173,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
             } catch (e: Exception) {
                 android.util.Log.e("Bayyinah", "Book references not loaded", e)
             }
+        }
+        viewModelScope.launch {
+            val pack = withContext(Dispatchers.IO) { com.bayyinah.app.book.MushafPackStore.load(getApplication()) }
+            if (pack != null) useMushafPack(pack)
         }
         viewModelScope.launch { queryFlow.debounce(250).collect { runSearch(it) } }
         val auto = prefs.getBoolean(KEY_AUTO_UPDATE, true)
@@ -225,6 +236,32 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
 
     fun toggleTorch() = _state.update { it.copy(torch = !it.torch) }
 
+    // ---------------------------------------------------------------- Mushaf pack
+
+    private fun useMushafPack(pack: com.bayyinah.app.book.MushafPack) {
+        mushafMatcher = com.bayyinah.app.book.MushafMatcher(pack)
+        _state.update { it.copy(mushafLines = pack.lines.size) }
+    }
+
+    /** Settings: install a `.bayyinah-pack` file the user picked. */
+    fun importMushafPack(uri: android.net.Uri) {
+        _state.update { it.copy(mushafImport = MushafImport.Working) }
+        viewModelScope.launch {
+            val pack = withContext(Dispatchers.IO) {
+                try { com.bayyinah.app.book.MushafPackStore.import(getApplication(), uri) }
+                catch (e: Exception) { android.util.Log.w("Bayyinah", "Mushaf pack import failed", e); null }
+            }
+            if (pack != null) useMushafPack(pack)
+            _state.update { it.copy(mushafImport = if (pack != null) MushafImport.Done else MushafImport.Failed) }
+        }
+    }
+
+    fun removeMushafPack() {
+        mushafMatcher = null
+        com.bayyinah.app.book.MushafPackStore.remove(getApplication())
+        _state.update { it.copy(mushafLines = null, mushafImport = MushafImport.Idle) }
+    }
+
     // ---------------------------------------------------------------- scanning
 
     private fun prepareScanner() {
@@ -281,6 +318,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app), RecitationPlayer.
             val t0 = System.currentTimeMillis()
             val r = bm.match(lum, w, h)
             if (com.bayyinah.app.BuildConfig.DEBUG) android.util.Log.d("BayyinahOcr", "book: $r in ${System.currentTimeMillis() - t0} ms")
+            if (r != null && r.accepted) { frame.recycle(); return r.verseId }
+        }
+        mushafMatcher?.let { mm ->
+            val w = frame.width; val h = frame.height
+            val px = IntArray(w * h); frame.getPixels(px, 0, w, 0, 0, w, h)
+            val lum = IntArray(w * h) { px[it] and 0xFF } // frame is already grayscale
+            val t0 = System.currentTimeMillis()
+            val r = mm.match(lum, w, h)
+            if (com.bayyinah.app.BuildConfig.DEBUG) android.util.Log.d("BayyinahOcr", "mushaf: $r in ${System.currentTimeMillis() - t0} ms")
             if (r != null && r.accepted) { frame.recycle(); return r.verseId }
         }
         val ocr = recognizer; val m = matcher

@@ -19,6 +19,7 @@ import bookfp as fp
 import mushaf_pitch as mp
 
 POOL, GAP, TOPK = 4, 16, 40
+MAX_LINES = int(__import__('os').environ.get('MAX_LINES', '3'))
 POOLX = int(__import__('os').environ.get('POOLX', '2'))   # extra column pooling in the coarse stage
 PAIR_BONUS = 0.08
 
@@ -111,6 +112,9 @@ class Index:
 
         # coarse search (FFT over the whole Mushaf) once per line, at the fitted pitch only
         full = full_lines(P1)
+        if len(full) > MAX_LINES:          # coarse search is the costly part: keep the lines nearest the middle
+            mid = H / 2
+            full = sorted(sorted(full, key=lambda g: abs(g[0] - 0.12 * P1 - mid))[:MAX_LINES], key=lambda g: g[0])
         ks = [int(round((g[0] - full[0][0]) / P1)) for g in full]
         use = [(kk, C, g) for kk, g in zip(ks, full) for C in [self.coarse(g[1])] if C is not None]
         if not use: return None
