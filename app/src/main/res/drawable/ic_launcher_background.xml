@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Deep green behind the icon artwork (the artwork itself is full-bleed in the foreground). -->
+<!-- Cream around the green rounded-square artwork (matches the icon file). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#06543E" />
+    <solid android:color="#FAF5EC" />
 </shape>
