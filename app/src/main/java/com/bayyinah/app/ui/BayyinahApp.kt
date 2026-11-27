@@ -48,7 +48,7 @@ fun BayyinahApp(vm: MainViewModel) {
     val view = LocalView.current
     SideEffect {
         (view.context as? Activity)?.window?.let {
-            WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = state.screen != Screen.Scanner && state.screen != Screen.Home
+            WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = state.screen != Screen.Scanner
         }
         // Never let the screen sleep while she follows an ayah (player open) or scans.
         view.keepScreenOn = state.verse != null || state.screen == Screen.Scanner

@@ -17,24 +17,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// Brand palette
-val Emerald = Color(0xFF0D5C3A)
-val EmeraldDeep = Color(0xFF073F27)
-val EmeraldSoft = Color(0xFFD6E9DD)
-val Amber = Color(0xFFE5A93B)
-val AmberDeep = Color(0xFF9A6A12)
-val AmberSoft = Color(0xFFFBEBC8)
-val Cream = Color(0xFFFFFDF6)
-val Parchment = Color(0xFFEFEBE0)
-val Ink = Color(0xFF1A1C17)
-val InkMuted = Color(0xFF5E6157)
-/** Soft jade for the floating bar and round buttons (from the mockup). */
-val Jade = Color(0xFF75C9A3)
-/** Deep night green behind the scan pages. */
-val Night = Color(0xFF0E1F17)
-val Mint = Color(0xFFE3F1E7)        // soft card tint (reference: pastel cards)
-val MintStrong = Color(0xFFC6E3CF)
-val Sand = Color(0xFFF7F0DC)        // second soft card tint
+// Brand palette — greens and white only (Material 3 Expressive look: pale green background,
+// white cards, deep green actions, a soft lime glow for accents).
+val Emerald = Color(0xFF1F6B47)
+val EmeraldDeep = Color(0xFF0F3D2A)
+val EmeraldSoft = Color(0xFFD3EBDA)
+/** Lime accent (was amber): icons on deep green, active states, glows. */
+val Amber = Color(0xFFC6EF8A)
+val AmberDeep = Color(0xFF3E6B12)
+val AmberSoft = Color(0xFFE6F6D2)
+/** Page background, and light text on deep green. */
+val Cream = Color(0xFFF3F9F3)
+val Parchment = Color(0xFFE2EDE4)
+val Ink = Color(0xFF14211A)
+val InkMuted = Color(0xFF55665B)
+/** Floating bar and round buttons. */
+val Jade = Color(0xFFCBE7D2)
+/** Background of the home page (light). */
+val Night = Color(0xFFE8F3EA)
+val Mint = Color(0xFFE1F0E4)        // tinted card
+val MintStrong = Color(0xFFC3E3CB)
+val Sand = Color(0xFFFFFFFF)        // white card
 
 /**
  * KFGQPC Warsh Uthmanic Script (King Fahd Complex). Required: the Warsh text uses codepoints
@@ -48,9 +51,9 @@ private val BayyinahColors = lightColorScheme(
     primaryContainer = EmeraldSoft,
     onPrimaryContainer = EmeraldDeep,
     secondary = Amber,
-    onSecondary = Color(0xFF2B1D00),
+    onSecondary = EmeraldDeep,
     secondaryContainer = AmberSoft,
-    onSecondaryContainer = Color(0xFF4A3300),
+    onSecondaryContainer = AmberDeep,
     tertiary = AmberDeep,
     background = Cream,
     onBackground = Ink,
@@ -58,17 +61,18 @@ private val BayyinahColors = lightColorScheme(
     onSurface = Ink,
     onSurfaceVariant = InkMuted,
     surfaceContainerLowest = Color.White,
-    surfaceContainerLow = Color(0xFFFAF7EE),
+    surfaceContainerLow = Color(0xFFF7FBF7),
     surfaceContainer = Parchment,
-    surfaceContainerHigh = Color(0xFFE7E2D4),
-    outline = Color(0xFFC9C3B2),
-    outlineVariant = Color(0xFFE2DDCF),
+    surfaceContainerHigh = Color(0xFFD9E7DC),
+    outline = Color(0xFFB5C7BA),
+    outlineVariant = Color(0xFFD5E2D8),
 )
 
 private val BayyinahTypography = Typography().run {
     copy(
         displayMedium = displayMedium.copy(fontWeight = FontWeight.Bold),
-        titleLarge = titleLarge.copy(fontWeight = FontWeight.Bold),
+        headlineMedium = headlineMedium.copy(fontWeight = FontWeight.Bold),
+        titleLarge = titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
         labelLarge = labelLarge.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp),
     )
 }

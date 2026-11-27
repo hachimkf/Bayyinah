@@ -95,7 +95,7 @@ fun FloatingNav(current: Screen, onSelect: (Screen) -> Unit, onScan: () -> Unit,
         // The scan button, apart from the tabs.
         Surface(
             onClick = { haptics.performHapticFeedback(HapticFeedbackType.VirtualKey); onScan() },
-            color = Jade, contentColor = EmeraldDeep, shape = CircleShape, shadowElevation = 8.dp,
+            color = EmeraldDeep, contentColor = Amber, shape = CircleShape, shadowElevation = 8.dp,
             modifier = Modifier.size(68.dp),
         ) {
             Box(contentAlignment = Alignment.Center) { Icon(AppIcons.Scan, stringResource(R.string.scan_title), Modifier.size(32.dp)) }

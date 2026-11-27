@@ -105,6 +105,11 @@
     <string name="scan_home_title">امسح الآية من كتابك</string>
     <string name="scan_home_sub">وجّه الكاميرا نحو الآية، وستبدأ التلاوة وحدها</string>
     <string name="choose_manually">أو اختر الآية بنفسك</string>
+    <string name="how_to_scan">هكذا تمسح الآية</string>
+    <string name="row_speed">سرعة التلاوة</string>
+    <string name="row_repeat">تكرار الآية</string>
+    <string name="row_torch">المصباح</string>
+    <string name="scan_big">امسح الآية</string>
     <string name="back_again">اسحب مرة أخرى للخروج</string>
     <string name="setup_error">تعذّر فتح المصحف. أعد تشغيل التطبيق.</string>
 </resources>
