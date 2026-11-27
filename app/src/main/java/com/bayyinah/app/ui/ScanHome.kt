@@ -68,29 +68,11 @@ fun ScanHomeScreen(vm: MainViewModel, state: UiState, update: UpdateUi, sample: 
         val frameH = with(density) { frame.height().toDp() }
         val hDp = with(density) { h.toDp() }; val wDp = with(density) { w.toDp() }
 
-        // The page. A real Mushaf page is shown only if it was put on this phone
-        // (files/mushaf_home.jpg — never in the APK); otherwise a drawn page.
-        val context = LocalContext.current
-        val real = remember {
-            java.io.File(context.filesDir, "mushaf_home.jpg").takeIf { it.exists() }
-                ?.let { android.graphics.BitmapFactory.decodeFile(it.path) }?.asImageBitmap()
-        }
-        Box(Modifier.fillMaxWidth().offset(y = frameTop).height(frameH), contentAlignment = Alignment.Center) {
-            if (real != null) {
-                // shifted up a little so the surah's ayat (not its title band) sit in the clear strip at the line
-                Image(real, null, contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().wrapContentHeight(unbounded = true).offset(y = -hDp * 0.06f))
-            } else Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth().wrapContentHeight(unbounded = true).padding(horizontal = 34.dp),
-            ) {
-                TitleBand("سورة الفلق")
-                PageText(sample)
-                TitleBand("سورة الناس")
-            }
-        }
-        // The design's white fade (its exact stops), clear around the scan line.
-        Box(Modifier.fillMaxSize().background(HomeFade))
+        // Her own home image (a Mushaf page with its soft fade), exactly as given, filling the screen.
+        Image(
+            painterResource(R.drawable.home_page), null,
+            contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize(),
+        )
         ScanFrame(frame, Modifier.fillMaxSize(), accent = ScanLine, line = ScanLine, beamTop = ScanLine.copy(alpha = 0.30f))
 
         // Top: two mint circles — the app logo (the whole Mushaf) and settings.

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Cream around the green rounded-square artwork (matches the icon file). -->
+<!-- Deep green (bottom-left) to lime (top-right), matching the icon artwork. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#FAF5EC" />
+    <gradient android:angle="45" android:startColor="#04A837" android:endColor="#8EF905" />
 </shape>
